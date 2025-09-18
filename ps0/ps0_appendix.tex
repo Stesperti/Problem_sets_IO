@@ -1,0 +1,196 @@
+% !TeX root = main.tex
+
+% class
+	\documentclass[a4paper, 11pt]{article}
+
+% packages
+	% fonts
+		\usepackage[T1]{fontenc}
+		\usepackage[utf8]{inputenc}
+		\usepackage{titlesec}
+	% margins
+		\usepackage[bottom = 2cm, top = 2cm, left = 2cm, right = 2cm]{geometry}
+	% math
+		\usepackage{amsmath}
+		\usepackage{amsfonts}
+		\usepackage{amsthm}
+		\usepackage{bm}
+		\usepackage{mathtools}
+		\usepackage{dsfont}
+	% references
+		\usepackage[colorlinks = true, linkcolor = black, citecolor = black, urlcolor = gray]{hyperref}
+		\usepackage{cleveref}
+	% pictures
+		\usepackage{graphicx}
+		\usepackage{subcaption}
+		\usepackage{float}
+	% colors
+		\usepackage{xcolor}
+	% code
+		\usepackage{listings}
+	% other
+		% boxes
+			\usepackage{scalerel}
+			\usepackage{adjustbox}
+		% tables
+			\usepackage{multirow}
+		% itemize
+			\usepackage{enumerate}
+		% misc
+			\usepackage{comment}	
+			\usepackage{lipsum}
+   \usepackage{natbib}
+\bibliographystyle{plainnat}
+
+
+% commands
+	% math
+		\newcommand{\prob}[1]{\mathbb{P}\left(#1\right)}
+		\newcommand{\mean}[1]{\mathbb{E}\left[#1\right]}
+		\newcommand{\var}[1]{\operatorname{Var}\left(#1\right)}
+		\newcommand{\cov}[2]{\operatorname{Cov}\left(#1, #2\right)}
+		\newcommand{\corr}[2]{\operatorname{Corr}\left(#1, #2\right)}
+		\newcommand{\normal}[2]{\mathcal{N}\left(#1, #2\right)}
+		\newcommand{\uniform}[1]{\operatorname{U}\left(#1\right)}
+		\newcommand{\indic}{\mathds{1}}
+		\newcommand{\real}{\mathbb{R}}
+		\newcommand{\integer}{\mathbb{Z}}
+		\renewcommand{\natural}{\mathbb{N}}
+  \newcommand{\ra}{\rightarrow}
+\newcommand{\iy}{\infty}
+\newcommand{\mE}{\mathbb{E}}
+\newcommand{\mP}{\mathbb{P}}
+\newcommand{\mB}{\mathcal{B}}
+\newcommand{\mL}{\mathbb{L}}
+\newcommand{\mLL}{\mathbb{L}^2\left\left(0,T\right\right)}
+\newcommand{\mR}{\mathbb{R}}
+\newcommand{\mN}{\mathbb{N}}
+\newcommand{\mF}{\mathcal{F}}
+\newcommand{\mM}{\mathcal{M}}
+\newcommand{\mW}{\mathcal{W}}
+\newcommand{\mA}{\mathcal{A}}
+\newcommand{\mez}{\frac{1}{2}}
+\newcommand{\intT}{\int_{0}^{T}}
+\newcommand{\dt}{\frac{\partial f}{\partial t}}
+\newcommand{\dl}{\frac{\partial f}{\partial \lambda}}
+\newcommand{\inti}{\int_{\left\left(0,\infty\right\right)}}
+\newcommand{\intt}{\int_0^t}
+\newcommand{\W}[1]{W\left\left({#1}_{k+1}\right\right)-W\left\left({#1}_k\right\right)}
+\newcommand{\ninf}{n \ra \iy}
+\newcommand{\nN}{n \in \mathbb{N}}
+\newcommand{\Q}{Q_t}
+\newcommand{\ig}{{\lfloor \gamma_k t \rfloor}}
+\newcommand{\X}{\mathcal{X}}
+\newcommand{\T}{\Theta}
+\newcommand{\E}{\mathbb{E}}
+\newcommand{\R}{\mathbb{R}}
+
+% preamble
+	% path for pictures
+		\graphicspath{{./images/}}
+	% adjust indentation
+		\newlength\tindent
+		\setlength{\tindent}{\parindent}
+		\setlength{\parindent}{0pt}
+		\renewcommand{\indent}{\hspace*{\tindent}}
+	% set fbox dimension
+		\setlength{\fboxsep}{6pt}
+	% layout
+		% math
+			\newtheorem{thm}{Theorem}
+			\newtheorem*{thm*}{Theorem}
+			\crefname{thm}{Theorem}{Theorems}
+			\theoremstyle{plain}
+			\newtheorem{rem}{Remark}
+			\newtheorem*{rem*}{Remark}
+			\crefname{rem}{Remark}{Remarks}
+			\newenvironment{solution}{\vspace{-0.3cm}\paragraph{\normalfont{\bfseries{Solution.}}}}{\hfill$\square$}
+		% fonts
+			\titleformat*{\section}{\Large\bfseries}
+			\titleformat*{\subsection}{\large\bfseries}
+		% bib
+			\newcommand{\doi}[1]{\textsc{doi}: \href{https://doi.org/#1}{#1}}
+		% title
+			\makeatletter
+				\def\maketitle{%
+					\pagestyle{plain}
+						\begin{flushleft}
+							\normalfont{\small{%
+								\@author \\
+								\@date
+							}}
+						\end{flushleft}
+						\begin{flushright}\vspace{-15mm}
+						\includegraphics[height = 1.5cm]{\mainlogo}
+						\end{flushright}
+						\vspace{-0.1cm}
+						\begin{center}\vspace{-5mm}
+							\scshape{\Large{\bfseries{\maintitle}} \\
+							\large \@title} \\
+							\vspace{0.25cm}
+							\rule{0.75\linewidth}{0.1mm}	
+						\end{center}
+					}
+			\makeatother
+
+\begin{document}
+
+	  \author{Stefano Sperti}
+	\date{\today}
+	\title{Code Appendix}
+        \def\maintitle{Problem set 0}
+	\def\mainlogo{chicago_booth_logo.jpg}
+
+	\maketitle
+\section{Part 0: Logit Inclusive Value}
+
+Define the (log-sum-exp) inclusive value
+\[
+\mathrm{IV}(x) \;=\; \log\!\Bigg(\sum_{i=1}^N e^{x_i}\Bigg), \qquad x\in\mathbb{R}^N.
+\]
+Let \(S=\sum_{j=1}^N e^{x_j}\) and \(p_i = e^{x_i}/S\). Then
+\[
+\nabla \mathrm{IV}(x) = p \quad\text{and}\quad 
+\nabla^2 \mathrm{IV}(x) = \operatorname{diag}(p) - pp^\top .
+\]
+For any \(v\in\mathbb{R}^N\),
+\[
+v^\top \nabla^2 \mathrm{IV}(x)\, v
+= \sum_{i=1}^N p_i v_i^2 - \Big(\sum_{i=1}^N p_i v_i\Big)^2
+= \operatorname{Var}_p(V) \;\ge\; 0,
+\]
+where \(V\) takes value \(v_i\) with probability \(p_i\). Hence \(\nabla^2 \mathrm{IV}(x)\) is positive semidefinite and \(\mathrm{IV}\) is convex.
+
+\section{Part 2: Numerical integration}
+\subsection*{2.7} The following tables present the results obtained from the code.
+\begin{table}[htbp]
+\centering
+\begin{tabular}{ccccc}
+Method & Value & Abs. error & Rel. error & N points\\
+QuadGK, True Value & 0.555939 & - & - & —\\
+MC 200 & 0.541772 & 0.014167 & 2.548265 & 200\\
+MC 400 & 0.543203 & 0.012736 & 2.290979 & 400\\
+GH 4 & 0.555916 & 2.3e-5 & 0.004225 & 4\\
+GH 8 & 0.555939 & 0.0 & 1.1e-5 & 8\\
+GH 12 & 0.555939 & 0.0 & 0.0 & 12\\
+\end{tabular}
+
+\caption{1D integration results: value, error, and number of points.}
+\label{tab:results-1d}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\begin{tabular}{ccccc}
+Method & Value & Abs. error & Rel. error & N points\\
+QuadGK, True Value & 0.725886 & - & - &-\\
+MC 200 & 0.703327 & 0.022559 & 3.107809 & 200\\
+MC 400 & 0.711449 & 0.014437 & 1.988858 & 400\\
+\end{tabular}
+
+\caption{2D integration results: value, error, and number of points.}
+\label{tab:results-2d}
+\end{table}
+
+\end{document}
+
