@@ -142,76 +142,55 @@
 	\def\mainlogo{Latex/chicago_booth_logo.jpg}
 
 	\maketitle
-\section*{2)}
-Let a dummy for alternative \(j\) be a variable whose value in the representative utility of alternative \(i\) is
-\[
-d_i^j =
-\begin{cases}
-1 & \text{if } i = j, \\
-0 & \text{otherwise}.
-\end{cases}
-\]
+\section{Part 0: Logit Inclusive Value}
 
-Then, the estimated constant for alternative \(j\) is the one that matches the observed market share:
+Define the (log-sum-exp) inclusive value
 \[
-\hat{s}_j = \frac{1}{N} \sum_{i=1}^N \sum_{j} y_{ij} d_i^j.
+\mathrm{IV}(x) \;=\; \log\!\Bigg(\sum_{i=1}^N e^{x_i}\Bigg), \qquad x\in\mathbb{R}^N.
 \]
+Let \(S=\sum_{j=1}^N e^{x_j}\) and \(p_i = e^{x_i}/S\). Then
+\[
+\nabla \mathrm{IV}(x) = p \quad\text{and}\quad 
+\nabla^2 \mathrm{IV}(x) = \operatorname{diag}(p) - pp^\top .
+\]
+For any \(v\in\mathbb{R}^N\),
+\[
+v^\top \nabla^2 \mathrm{IV}(x)\, v
+= \sum_{i=1}^N p_i v_i^2 - \Big(\sum_{i=1}^N p_i v_i\Big)^2
+= \operatorname{Var}_p(V) \;\ge\; 0,
+\]
+where \(V\) takes value \(v_i\) with probability \(p_i\). Hence \(\nabla^2 \mathrm{IV}(x)\) is positive semidefinite and \(\mathrm{IV}\) is convex.
 
+\section{Part 2: Numerical integration}
+\subsection*{2.7} The following tables present the results obtained from the code.
+\begin{table}[htbp]
+\centering
+\begin{tabular}{ccccc}
+Method & Value & Abs. error & Rel. error & N points\\
+QuadGK, True Value & 0.555939 & - & - & —\\
+MC 200 & 0.541772 & 0.014167 & 2.548265 & 200\\
+MC 400 & 0.543203 & 0.012736 & 2.290979 & 400\\
+GH 4 & 0.555916 & 2.3e-5 & 0.004225 & 4\\
+GH 8 & 0.555939 & 0.0 & 1.1e-5 & 8\\
+GH 12 & 0.555939 & 0.0 & 0.0 & 12\\
+\end{tabular}
 
-Choosing the alternative that household \(i\) was actually observed to choose is
-\[
-\prod_{i=1}^N \prod_{j} (P_{ij})^{y_{ij}},
-\]
-where \(\beta\) is a vector containing the parameters of the model.  
-The log-likelihood function is then
-\[
-\ell(\beta) 
-= \sum_{i=1}^N \sum_{j} y_{ij} \ln P_{ij}.
-\]
+\caption{1D integration results: value, error, and number of points.}
+\label{tab:results-1d}
+\end{table}
 
-The estimator is the value of \(\beta\) that maximizes this function:
-\[
-\ell(\beta) 
-= \sum_{i=1}^N \sum_{j} y_{ij} \ln P_{ij}
-= \sum_{i=1}^N \sum_{j} y_{ij} 
-   \ln \left( \frac{e^{\beta' x_{ij}}}{\sum_{k} e^{\beta' x_{ik}}} \right).
-\]
+\begin{table}[htbp]
+\centering
+\begin{tabular}{ccccc}
+Method & Value & Abs. error & Rel. error & N points\\
+QuadGK, True Value & 0.725886 & - & - &-\\
+MC 200 & 0.703327 & 0.022559 & 3.107809 & 200\\
+MC 400 & 0.711449 & 0.014437 & 1.988858 & 400\\
+\end{tabular}
 
-This can be written as
-\[
-\ell(\beta)
-= \sum_{i=1}^N \sum_{j} y_{ij} (\beta' x_{ij})
-  - \sum_{i=1}^N \sum_{j} y_{ij} \ln \left( \sum_{k} e^{\beta' x_{ik}} \right).
-\]
-\section*{3)}
-\[
-\frac{\partial \ell(\beta)}{\partial \beta}
-= \sum_{i} \sum_{j} y_{ij} \frac{\partial (\beta' x_{ij})}{\partial \beta}
- - \sum_{i} \sum_{j} y_{ij} \frac{\partial}{\partial \beta} 
-   \ln \left( \sum_{k} e^{\beta' x_{ik}} \right).
-\]
-
-\[
-= \sum_{i} \sum_{j} y_{ij} x_{ij}
- - \sum_{i} \sum_{j} y_{ij} \sum_{k} P_{ik} x_{ik}.
-\]
-
-\[
-= \sum_{i} \sum_{j} y_{ij} x_{ij}
- - \sum_{i} \Bigg( \sum_{j} y_{ij} \Bigg) \sum_{k} P_{ik} x_{ik}.
-\]
-
-Since each household \(i\) chooses exactly one product, we have \(\sum_{j} y_{ij} = 1\).  
-Thus,
-\[
-\frac{\partial \ell(\beta)}{\partial \beta}
-= \sum_{i} \sum_{j} y_{ij} x_{ij}
- - \sum_{i} \sum_{j} P_{ij} x_{ij}.
-\]
-
-\[
-= \sum_{i} \sum_{j} \big( y_{ij} - P_{ij} \big) x_{ij}.
-\]
+\caption{2D integration results: value, error, and number of points.}
+\label{tab:results-2d}
+\end{table}
 
 \end{document}
 
