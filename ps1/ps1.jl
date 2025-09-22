@@ -8,8 +8,21 @@ figures_dir = joinpath(@__DIR__, "figures")
 if !isdir(figures_dir)
     mkdir(figures_dir)
 end
+
+
+
+println("Starting analysis...")
+
 open("log_result.txt", "w") do f
     redirect_stdout(f) do
+
+        options = Optim.Options(
+            g_tol = 1e-6,          # gradient tolerance
+            iterations = 1000,     # max iterations
+            f_calls_limit = 5000,  # max total calls to your objective function
+            show_trace = true,
+            show_every = 100       # print trace every 100 iterations
+        )
 
         school_dataset = CSV.read("schools_dataset.csv", DataFrame)
         println("Number of rows: ", size(school_dataset, 1))
@@ -68,6 +81,8 @@ open("log_result.txt", "w") do f
         @assert length(sports) == J
         @assert size(distance, 1) == N
         @assert size(distance, 2) == J
+
+        
         ### 4 Estimate the plain logit model by maximimum likelihood.
         println("--------------------------------")
         println("Problem 2.4")
@@ -108,13 +123,14 @@ open("log_result.txt", "w") do f
         result = optimize(
             p -> loglik_joint_full(p, test_scores, sports, distance, y),
             init_params,
-            BFGS()
+            BFGS(),
+            options
         )
 
-        params_hat = Optim.minimizer(result)
-        alpha_hat = params_hat[1]
-        beta_hat = params_hat[2:3]
-        xi_hat = [0.0; params_hat[4:end]]   # xi1 = 0
+        params_hat_baseline = Optim.minimizer(result)
+        alpha_hat = params_hat_baseline[1]
+        beta_hat = params_hat_baseline[2:3]
+        xi_hat = [0.0; params_hat_baseline[4:end]]   # xi1 = 0
 
         println("----------------------------")
         println("MLE Results")
@@ -180,7 +196,8 @@ open("log_result.txt", "w") do f
         result = optimize(
             p -> loglik_joint_restricted(p, y),
             init_params,
-            BFGS()
+            BFGS(),
+            options
         )
 
         params_hat = Optim.minimizer(result)
@@ -221,6 +238,13 @@ open("log_result.txt", "w") do f
         println("Problem 2.7")
         println("Estimating the logit model with simulation using montecarlo methods...")
         println("--------------------------------")
+        options = Optim.Options(
+            iterations = 100,      # max inner optimizer iterations per barrier step
+            f_calls_limit = 1000,  # max total calls to your objective function
+            show_trace = true,
+            g_tol = 1e-6,         # gradient tolerance
+            show_every = 50       # print trace every 50 iterations
+        )
         function loglik_joint_simulated_MC(params, test_scores, sports, distance, y, R)
             N, J = size(distance)
 
@@ -252,12 +276,12 @@ open("log_result.txt", "w") do f
         end
 
         # Initial values
-        init_params = vcat(zeros(3 + J - 1), 1)
+        init_params = vcat(params_hat_baseline, 1)
         println("Initial parameters: ", init_params)
 
         # MLE estimation
         println("Starting optimization...")
-        R = 100
+        R = 80
         lb = fill(-Inf, length(init_params))
         lb[end] = 1e-6         # last parameter > 0
 
@@ -269,7 +293,8 @@ open("log_result.txt", "w") do f
             lb,
             ub,
             init_params,
-            Fminbox(BFGS())
+            Fminbox(BFGS()),
+            options
         )
 
         params_hat = Optim.minimizer(result)
@@ -347,7 +372,7 @@ open("log_result.txt", "w") do f
         end
 
 
-        init_params = vcat(zeros(3 + J - 1), 1)
+        init_params = vcat(params_hat_baseline, 1)
         println("Initial parameters: ", init_params)
         # ----------------------------
         # MLE estimation
@@ -365,7 +390,8 @@ open("log_result.txt", "w") do f
             lb,
             ub,
             init_params,
-            Fminbox(BFGS())
+            Fminbox(BFGS()),
+            options
         )
 
         params_hat = Optim.minimizer(result)
@@ -407,6 +433,7 @@ open("log_result.txt", "w") do f
         """
 
         println(latex_table1)
+
 
 
         ### 10
@@ -466,10 +493,10 @@ open("log_result.txt", "w") do f
         end
 
         # Initial values
-        init_params = vcat(zeros(3 + J - 1), 1)
+        init_params = vcat(params_hat_baseline, 1)
 
         # GMM estimation
-        R = 100
+        R = 80
         lb = fill(-Inf, length(init_params))
         lb[end] = 1e-6         # last parameter > 0
 
@@ -479,7 +506,8 @@ open("log_result.txt", "w") do f
             lb,
             ub,
             init_params,
-            Fminbox(BFGS())
+            Fminbox(BFGS()),
+            options
         )
 
 
@@ -621,10 +649,10 @@ open("log_result.txt", "w") do f
         end
 
         # Initial values
-        init_params = vcat(zeros(3 + J - 1), 1)
+        init_params = vcat(params_hat_baseline, 1)
 
         # GMM estimation
-        R = 100
+        R = 80
         lb = fill(-Inf, length(init_params))
         lb[end] = 1e-6         # last parameter > 0
 
@@ -634,7 +662,8 @@ open("log_result.txt", "w") do f
             lb,
             ub,
             init_params,
-            Fminbox(BFGS())
+            Fminbox(BFGS()),
+            options
         )
 
 
