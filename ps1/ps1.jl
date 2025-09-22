@@ -79,7 +79,7 @@ open("log_result.txt", "w") do f
         @assert length(y) == N
         @assert length(test_scores) == J
         @assert length(sports) == J
-        @assert size(distance, 1) == N
+        @assert size( distance, 1) == N
         @assert size(distance, 2) == J
 
         
@@ -123,7 +123,7 @@ open("log_result.txt", "w") do f
         result = optimize(
             p -> loglik_joint_full(p, test_scores, sports, distance, y),
             init_params,
-            BFGS(),
+            GradientDescent(),
             options
         )
 
@@ -196,7 +196,7 @@ open("log_result.txt", "w") do f
         result = optimize(
             p -> loglik_joint_restricted(p, y),
             init_params,
-            BFGS(),
+            GradientDescent(),
             options
         )
 
@@ -238,12 +238,23 @@ open("log_result.txt", "w") do f
         println("Problem 2.7")
         println("Estimating the logit model with simulation using montecarlo methods...")
         println("--------------------------------")
+
+        params_hat_baseline = [
+            0.201097,
+            -0.211697,
+            0.20147,
+            -0.632777,
+            -1.030061,
+            0.364199,
+            -0.897948
+        ]  # from previous estimation  
+
         options = Optim.Options(
-            iterations = 100,      # max inner optimizer iterations per barrier step
-            f_calls_limit = 1000,  # max total calls to your objective function
+            iterations = 5,      # max inner optimizer iterations per barrier step
+            f_calls_limit = 300,  # max total calls to your objective function
             show_trace = true,
             g_tol = 1e-6,         # gradient tolerance
-            show_every = 50       # print trace every 50 iterations
+            show_every = 1        # print trace every iteration
         )
         function loglik_joint_simulated_MC(params, test_scores, sports, distance, y, R)
             N, J = size(distance)
@@ -293,7 +304,7 @@ open("log_result.txt", "w") do f
             lb,
             ub,
             init_params,
-            Fminbox(BFGS()),
+            Fminbox(GradientDescent()),
             options
         )
 
@@ -390,7 +401,7 @@ open("log_result.txt", "w") do f
             lb,
             ub,
             init_params,
-            Fminbox(BFGS()),
+            Fminbox(GradientDescent()),
             options
         )
 
@@ -506,7 +517,7 @@ open("log_result.txt", "w") do f
             lb,
             ub,
             init_params,
-            Fminbox(BFGS()),
+            Fminbox(GradientDescent()),
             options
         )
 
@@ -662,7 +673,7 @@ open("log_result.txt", "w") do f
             lb,
             ub,
             init_params,
-            Fminbox(BFGS()),
+            Fminbox(GradientDescent()),
             options
         )
 
