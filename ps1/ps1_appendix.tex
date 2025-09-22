@@ -138,80 +138,254 @@
 	  \author{Stefano Sperti}
 	\date{\today}
 	\title{Code Appendix}
-        \def\maintitle{Problem set 0}
+        \def\maintitle{Problem set 1}
 	\def\mainlogo{Latex/chicago_booth_logo.jpg}
 
 	\maketitle
-\section*{2)}
-Let a dummy for alternative \(j\) be a variable whose value in the representative utility of alternative \(i\) is
-\[
-d_i^j =
-\begin{cases}
-1 & \text{if } i = j, \\
-0 & \text{otherwise}.
-\end{cases}
-\]
 
-Then, the estimated constant for alternative \(j\) is the one that matches the observed market share:
-\[
-\hat{s}_j = \frac{1}{N} \sum_{i=1}^N \sum_{j} y_{ij} d_i^j.
-\]
+\subsection*{1.  Look at the data and plot the distribution of distance to all schools, and the distribution of distance to the
+chosen school.}
 
 
-Choosing the alternative that household \(i\) was actually observed to choose is
+We first examine the distribution of distances between students and {all} available schools. 
+Next, we consider the distribution of the distance to the {chosen} school (i.e., the minimum distance). 
+These two histograms allow us to compare the general accessibility of schools with the actual distances 
+driven by the choice decision.
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/histogram_distance_all_schools.png}
+    \caption{Histogram of distances to all schools.}
+    \label{fig:distance_all}
+\end{figure}
+
+\begin{figure}[H]
+    \centering
+    \includegraphics[width=0.7\textwidth]{figures/histogram_min_distance_schools.png}
+    \caption{Histogram of distances to the chosen school (minimum distance).}
+    \label{fig:distance_chosen}
+\end{figure}
+
+\subsection*{2. Write down the market share and log-likelihood for a plain logit model.}
+
+
+Let \(y_{ij}\) be an indicator equal to 1 if household \(i\) chooses alternative \(j\) and 0 otherwise, so for each \(i\) we have \(\sum_j y_{ij}=1\).
+
+
+The observed (empirical) market share of alternative \(j\) is
 \[
-\prod_{i=1}^N \prod_{j} (P_{ij})^{y_{ij}},
-\]
-where \(\beta\) is a vector containing the parameters of the model.  
-The log-likelihood function is then
-\[
-\ell(\beta) 
-= \sum_{i=1}^N \sum_{j} y_{ij} \ln P_{ij}.
+\hat{s}_j \;=\; \frac{1}{N}\sum_{i=1}^N y_{ij}.
 \]
 
-The estimator is the value of \(\beta\) that maximizes this function:
+Let \(P_{ij}\) denote the model probability that household \(i\) chooses alternative \(j\).  
+In the multinomial logit model,
 \[
-\ell(\beta) 
-= \sum_{i=1}^N \sum_{j} y_{ij} \ln P_{ij}
-= \sum_{i=1}^N \sum_{j} y_{ij} 
-   \ln \left( \frac{e^{\beta' x_{ij}}}{\sum_{k} e^{\beta' x_{ik}}} \right).
+P_{ij} \;=\; \frac{\exp\!\big(\beta'\, x_{ij}\big)}{\sum_{k}\exp\!\big(\beta'\, x_{ik}\big)},
 \]
+where \(x_{ij}\) is the vector of attributes for alternative \(j\) as faced by household \(i\), and \(\beta\) is the parameter vector.
 
-This can be written as
+The likelihood of observing the sample of choices \(\{y_{ij}\}\) is
+\[
+L(\beta) \;=\; \prod_{i=1}^N \prod_{j} P_{ij}^{\,y_{ij}}.
+\]
+Taking logs gives the log-likelihood
+\[
+\ell(\beta) \;=\; \sum_{i=1}^N \sum_{j} y_{ij} \ln P_{ij}.
+\]
+Substituting the logit probabilities yields 
 \[
 \ell(\beta)
-= \sum_{i=1}^N \sum_{j} y_{ij} (\beta' x_{ij})
-  - \sum_{i=1}^N \sum_{j} y_{ij} \ln \left( \sum_{k} e^{\beta' x_{ik}} \right).
+= \sum_{i=1}^N \sum_{j} y_{ij}\,\big(\beta' x_{ij}\big)
+  - \sum_{i=1}^N \ln\!\Big(\sum_{k}\exp\!\big(\beta' x_{ik}\big)\Big),
 \]
-\section*{3)}
+where we used \(\sum_{j} y_{ij}=1\) to collapse the second term.
+The maximum likelihood estimator \(\hat\beta\) is the value of \(\beta\) that maximizes \(\ell(\beta)\).
+
+
+\subsection*{3. Write down the score and the gradient of your log-likelihood.}
+
+Starting from the log-likelihood function
+\[
+\ell(\beta) 
+= \sum_{i=1}^N \sum_{j} y_{ij} \big(\beta' x_{ij}\big)
+  - \sum_{i=1}^N \ln \Bigg( \sum_{k} e^{\beta' x_{ik}} \Bigg),
+\]
+its derivative with respect to \(\beta\) is
 \[
 \frac{\partial \ell(\beta)}{\partial \beta}
-= \sum_{i} \sum_{j} y_{ij} \frac{\partial (\beta' x_{ij})}{\partial \beta}
- - \sum_{i} \sum_{j} y_{ij} \frac{\partial}{\partial \beta} 
-   \ln \left( \sum_{k} e^{\beta' x_{ik}} \right).
+= \sum_{i=1}^N \sum_{j} y_{ij} \frac{\partial (\beta' x_{ij})}{\partial \beta}
+  - \sum_{i=1}^N \frac{\partial}{\partial \beta} 
+     \ln \Bigg( \sum_{k} e^{\beta' x_{ik}} \Bigg).
 \]
 
+The first term simplifies to
 \[
-= \sum_{i} \sum_{j} y_{ij} x_{ij}
- - \sum_{i} \sum_{j} y_{ij} \sum_{k} P_{ik} x_{ik}.
+\sum_{i=1}^N \sum_{j} y_{ij} x_{ij},
 \]
-
+and the second term to
 \[
-= \sum_{i} \sum_{j} y_{ij} x_{ij}
- - \sum_{i} \Bigg( \sum_{j} y_{ij} \Bigg) \sum_{k} P_{ik} x_{ik}.
+\sum_{i=1}^N \sum_{k} P_{ik} x_{ik},
 \]
+where \(P_{ik} = \dfrac{e^{\beta' x_{ik}}}{\sum_{m} e^{\beta' x_{im}}}\).
 
-Since each household \(i\) chooses exactly one product, we have \(\sum_{j} y_{ij} = 1\).  
-Thus,
+Thus, the score vector is
 \[
 \frac{\partial \ell(\beta)}{\partial \beta}
-= \sum_{i} \sum_{j} y_{ij} x_{ij}
- - \sum_{i} \sum_{j} P_{ij} x_{ij}.
+= \sum_{i=1}^N \sum_{j} \big( y_{ij} - P_{ij} \big)\, x_{ij}.
 \]
 
+The score is the sum over households of the difference between observed choices (\(y_{ij}\)) and model-predicted probabilities (\(P_{ij}\)), weighted by the covariates \(x_{ij}\).
+
+\subsection*{4. Estimate the plain logit model by maximimum likelihood.}
+
+In the following table, we present the estimates of the plain logit model obtained by maximum likelihood.
+
+
+TO INSERT
+\subsection*{5. Estimate a restricted model with only $\xi_j$ parameters. Add that to your table.}
+
+In the following table, we present the estimates of the restricted model with only $\xi_j$ parameters.
+
+
+TO INSERT
+
+
+\subsection*{6) Random coefficient on test scores: simulated market share and gradient}
+
+Assume parents' taste for test scores is random,
 \[
-= \sum_{i} \sum_{j} \big( y_{ij} - P_{ij} \big) x_{ij}.
+\beta_{1i}\sim\mathcal{N}(\beta_1,\sigma_b^2).
 \]
+Then, we can define
+\[
+\beta_{1}^{(r)} \;=\; \beta_1 + \sigma_b\, z^{(r)}.
+\]
+
+Conditional on draw \(r\) the representative utility for household \(i\) and school \(k\) is
+\[
+V_{ij}^{(r)}|\beta_{1}^{(r)} \;=\; \beta_{1}^{(r)}\cdot\text{test}_j
+              \;+\; \beta_{2}\cdot\text{sports}_j
+              \;+\; \xi_j
+              \;-\; \alpha\, d_{ij},
+\]
+and the conditional (given \(\beta_1^{(r)}\)) choice probability is the usual logit
+\[
+P_{ij}^{(r)}|\beta_{1}^{(r)} \;=\; \frac{\exp\!\big(V_{ij}^{(r)}\big)}{\sum_{m=1}^J \exp\!\big(V_{im}^{(r)}\big)}.
+\]
+
+We approximate the integrated choice probability by averaging over the \(R\) draws:
+\[
+\widehat{P}_{ik} \;=\; \frac{1}{R}\sum_{r=1}^R P_{ik}^{(r)}.
+\]
+
+The, The simulated market share of school \(j\) is
+\[
+\widehat{S}_j \;=\; \frac{1}{N}\sum_{i=1}^N \widehat{P}_{ij}
+               \;=\; \frac{1}{N R}\sum_{i=1}^N \sum_{r=1}^R P_{ij}^{(r)}.
+\]
+
+Let \(j(i)\) denote the observed choice of household \(i\). The simulated log-likelihood is
+\[
+\widehat{\mathcal{L}}(\theta)
+\;=\; \sum_{i=1}^N \log \widehat{P}_{i j(i)},
+\]
+where \(\theta=(\beta_1,\sigma_b,\beta_2,\xi_{1:J},\alpha)\).
+
+For a generic parameter \(\psi\in\{\beta_1,\sigma_b,\beta_2,\xi_1,\dots,\xi_J,\alpha\}\) we have
+\[
+\frac{\partial \widehat{\mathcal{L}}}{\partial \psi}
+= \sum_{i=1}^N \frac{1}{\widehat{P}_{i j(i)}}\;
+  \frac{\partial \widehat{P}_{i j(i)}}{\partial \psi}
+= \sum_{i=1}^N \frac{1}{\widehat{P}_{i j(i)}}\;
+  \frac{1}{R}\sum_{r=1}^R \frac{\partial P_{i j(i)}^{(r)}}{\partial \psi}.
+\]
+For computing the $\frac{\partial P_{i j(i)}^{(r)}}{\partial \psi}$ we can use the chain rule and starting analyzing the he derivative of a logit probability with respect to the utilities is
+\[
+\frac{\partial P_{ij}^{(r)}}{\partial V_{ik}^{(r)}}
+= P_{ij}^{(r)}\big(1_{\{j=k\}}-P_{ik}^{(r)}\big).
+\]
+Hence
+\[
+\frac{\partial P_{ij}^{(r)}}{\partial \psi}
+= \sum_{k=1}^J P_{ij}^{(r)}\big(1_{\{j=k\}}-P_{ik}^{(r)}\big)
+  \frac{\partial V_{ik}^{(r)}}{\partial \psi}.
+\]
+
+The derivatives of \(V_{ik}^{(r)}\) for the parameters depends specifically of the functional form of the utility and in this case we get
+\[
+\frac{\partial V_{ik}^{(r)}}{\partial \beta_1} = \text{test}_k,
+\qquad
+\frac{\partial V_{ik}^{(r)}}{\partial \sigma_b} = z^{(r)}\,\text{test}_k,
+\]
+\[
+\frac{\partial V_{ik}^{(r)}}{\partial \beta_2} = \text{sports}_k,\qquad
+\frac{\partial V_{ik}^{(r)}}{\partial \xi_\ell} = 1_{\{k=\ell\}},\qquad
+\frac{\partial V_{ik}^{(r)}}{\partial \alpha} = -d_{ik}.
+\]
+
+
+Combining the pieces,
+\[
+\frac{\partial \widehat{\mathcal{L}}}{\partial \psi}
+= \sum_{i=1}^N \frac{1}{\widehat{P}_{i j(i)}}\;
+  \frac{1}{R}\sum_{r=1}^R
+    \sum_{k=1}^J P_{i j(i)}^{(r)}\big(1_{\{j(i)=k\}}-P_{ik}^{(r)}\big)
+    \frac{\partial V_{ik}^{(r)}}{\partial \psi},
+\]
+with \(\partial V_{ik}^{(r)}/\partial\psi\) given above for each parameter.
+
+
+
+\subsection*{7. Estimate this expanded model via maximum likelihood:
+(a) Using 100 Monte Carlo Draws from an apporpriately transformed standard normal.
+(b) Using a Gauss Hermite quadrature rule.}
+In the following table, we present the estimates of the expanded model via maximum likelihood using 100 Monte Carlo Draws from an apporpriately transformed standard normal.
+
+TO INSERT
+In the following table, we present the estimates of the expanded model via maximum likelihood using a Gauss Hermite quadrature rule.
+
+
+TO INSERT
+\subsection*{8. Read Chapter 10 in Train and write down the MSM estimator for the expanded model. What are your
+“instruments”?}
+
+\subsection*{8. MSM estimator and instruments}
+
+The Method of Simulated Moments (MSM) estimator is obtained by choosing 
+\(\hat{\theta}\) to minimize
+\[
+Q_N(\theta) \;=\; g_N(\theta)^\top W_N g_N(\theta),
+\]
+where
+\[
+g_N(\theta) = \frac{1}{N}\sum_{i=1}^N \sum_j\left[ y_{ij} - \widehat{P}_{ij}(\theta) \right]  z_{ij},
+\]
+with \(y_{ij}\) the observed choice indicator, \(\widehat{P}_{ij}(\theta)\) the simulated choice probabilities, 
+and \(z_{ij}\) an instrument.  
+
+The instruments are functions of the exogenous variables that shift utilities but are uncorrelated with the unobserved errors.  
+In this setting, the instruments are the school characteristics that are  test scores, sports, distance.
+
+\subsection*{9. Calculate the Jacobian of the MSM estimator.}
+In the next matrix we present the estimates of the Jacobian of the MSM estimator.
+
+TO INSERT
+\subsection*{10. Estimate the Parameters of the MSM estimator.}
+In the following table, we present the estimates of  the Parameters of the MSM estimator.
+
+TO INSERT
+\subsection*{11. Bonus: Using your initial MSM estimates as a starting point, explain how to construct an “eﬀicient” MSM
+estimator, and produce “eﬀicient” estimates.}
+
+
+
+Starting from the initial MSM estimates, we obtain an efficient estimator by re-estimating the model 
+using as weighting matrix the inverse of the optimal covariance matrix of the sample moments: 
+\[
+W_N^{\ast} = \hat{\Omega}_N^{-1},
+\]
+where \(\hat{\Omega}_N\) is the estimated variance-covariance matrix of the simulated moments.  
+This two-step procedure delivers the efficient MSM estimator and the corresponding efficient estimates.
 
 \end{document}
 
