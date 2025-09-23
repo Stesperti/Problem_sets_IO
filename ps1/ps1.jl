@@ -22,12 +22,6 @@ options = Optim.Options(
     show_trace=true,
     show_every=50       # print trace every 50 iterations
 )
-options = Optim.Options(
-    g_tol=1e-6,          # gradient tolerance
-    iterations=1,     # max iterations
-    show_trace=true,
-    show_every=50       # print trace every 50 iterations
-)
 
 school_dataset = CSV.read("schools_dataset.csv", DataFrame)
 println("Number of rows: ", size(school_dataset, 1))
@@ -187,9 +181,12 @@ println("Estimated xi: ", xi_hat)
 
 
 # -------------------- Latex result --------------------
-parameter_xi = ["xi_$j" for j in 1:J]  # creates ["xi_1", "xi_2", ..., "xi_J"]
+parameter_xi = [raw"\$\xi_$j\$" for j in 1:J]
 
-parameters = vcat(["alpha", "beta1", "beta2"], parameter_xi)  # concatenate arrays
+# Combine with other parameters
+parameters = vcat([raw"\$\alpha\$",
+                   raw"\$\beta1\$",
+                   raw"\$\beta2\$"], parameter_xi)
 
 vals1 = vcat([alpha_hat, beta_hat[1], beta_hat[2]], xi_hat)  # concatenate values
 
@@ -259,7 +256,12 @@ println(raw"----------------------------")
 println("Estimated xi: ", xi_hat)
 
 # -------------------- Latex result --------------------
-parameter_xi = ["xi_$j" for j in 1:J]  # creates ["xi_1", "xi_2", ..., "xi_J"]
+parameter_xi = [raw"\$\xi_$j\$" for j in 1:J]
+
+# Combine with other parameters
+parameters = vcat([raw"\$\alpha\$",
+                   raw"\$\beta1\$",
+                   raw"\$\beta2\$"], parameter_xi)
 
 
 df2 = DataFrame(
@@ -312,13 +314,7 @@ options = Optim.Options(
     show_trace=true,
     show_every=10       # print trace every 100 iterations
 )
-options = Optim.Options(
-    g_tol=1e-6,          # gradient tolerance
-    iterations=1,       # max iterations
-    outer_iterations = 1,
-    show_trace=true,
-    show_every=10       # print trace every 100 iterations
-)
+
 function loglik_joint_simulated_MC(params, test_scores, sports, distance, y, R)
     N, J = size(distance)
 
@@ -441,9 +437,13 @@ println("Estimated beta: ", beta_hat)
 println("Estimated xi: ", xi_hat)
 
 # -------------------- Latex result --------------------
-parameter_xi = ["xi_$j" for j in 1:J]  # creates ["xi_1", "xi_2", ..., "xi_J"]
+parameter_xi = [raw"\$\xi_$j\$" for j in 1:J]
 
-parameters = vcat(["alpha", "beta1", "beta2"], parameter_xi, ["sigma_b"])
+# Combine with other parameters
+parameters = vcat([raw"\$\alpha\$",
+                   raw"\$\beta1\$",
+                   raw"\$\beta2\$"], parameter_xi, [raw"\$\sigma_b\$"])
+
 vals1 = vcat([alpha_hat, beta_hat[1], beta_hat[2]], xi_hat, [sigma_b_hat])
 
 df1 = DataFrame(
@@ -647,9 +647,12 @@ println("Estimated beta: ", beta_hat)
 println("Estimated xi: ", xi_hat)
 
 # -------------------- Latex result --------------------
-parameter_xi = ["xi_$j" for j in 1:J]  # creates ["xi_1", "xi_2", ..., "xi_J"]
+parameter_xi = [raw"\$\xi_$j\$" for j in 1:J]
 
-parameters = vcat(["alpha", "beta1", "beta2"], parameter_xi, ["sigma_b"])
+# Combine with other parameters
+parameters = vcat([raw"\$\alpha\$",
+                   raw"\$\beta1\$",
+                   raw"\$\beta2\$"], parameter_xi, [raw"\$\sigma_b\$"])
 vals1 = vcat([alpha_hat, beta_hat[1], beta_hat[2]], xi_hat, [sigma_b_hat])
 
 df1 = DataFrame(
@@ -830,9 +833,12 @@ println("Estimated beta: ", beta_hat)
 println("Estimated xi: ", xi_hat)
 
 # -------------------- Latex result --------------------
-parameter_xi = ["xi_$j" for j in 1:J]  # creates ["xi_1", "xi_2", ..., "xi_J"]
+parameter_xi = [raw"\$\xi_$j\$" for j in 1:J]
 
-parameters = vcat(["alpha", "beta1", "beta2"], parameter_xi, ["sigma_b"])
+# Combine with other parameters
+parameters = vcat([raw"\$\alpha\$",
+                   raw"\$\beta1\$",
+                   raw"\$\beta2\$"], parameter_xi, [raw"\$\sigma_b\$"])
 vals1 = vcat([alpha_hat, beta_hat[1], beta_hat[2]], xi_hat, [sigma_b_hat])
 
 df1 = DataFrame(
@@ -924,110 +930,91 @@ end
 jacobian = jacobian_msm(params_hat, test_scores, sports, distance, y, 100)
 println("Jacobian size: ", size(jacobian))
 
-n, m = size(jacobian)
-colnames = ["Col$(i)" for i in 1:m]
-df1 = DataFrame(jacobian, Symbol.(colnames))
 
-# Convert to LaTeX table string
-tab_jacobian = String(latexify(df1, env=:tabular, latex=false))
-
-latex_table_jacobian = """
-\\begin{table}[htbp]
-\\centering
-$tab_jacobian
-\\caption{Jacobian matrix of the moments.}
-\\end{table}
-"""
-
-# Save to file
-open(joinpath(latex_dir, "table_9.tex"), "w") do f
-    write(f, latex_table_jacobian)
-end
-
-
-println("Table saved to latex/table_9.tex")
-println(latex_table_jacobian)
 
 
 ### 11
-println("--------------------------------")
-println("Problem 2.11")
-println("Estimating efficient MSM...")
-println("--------------------------------")
+# println("--------------------------------")
+# println("Problem 2.11")
+# println("Estimating efficient MSM...")
+# println("--------------------------------")
 
-function msm_objective_efficient(params, test_scores, sports, distance, y, R)
-    g_all = msm_moments(params, test_scores, sports, distance, y, R)  # N x L
-    N, L = size(g_all)
+# function msm_objective_efficient(params, test_scores, sports, distance, y, R)
+#     g_all = msm_moments(params, test_scores, sports, distance, y, R)  # N x L
+#     N, L = size(g_all)
 
-    # Compute mean of moments across households
-    g_mean = mean(g_all, dims=1)             # 1 x L
+#     # Compute mean of moments across households
+#     g_mean = mean(g_all, dims=1)             # 1 x L
 
-    # Covariance matrix of moments (L x L)
-    Omega = (g_all .- g_mean)' * (g_all .- g_mean) / N
-    W = inv(Omega + 1e-8 * I)                  # add small regularization for numerical stability
+#     # Covariance matrix of moments (L x L)
+#     Omega = (g_all .- g_mean)' * (g_all .- g_mean) / N
+#     W = inv(Omega + 1e-8 * I)                  # add small regularization for numerical stability
 
-    # Stack moments across households
-    g = vec(sum(g_all, dims=1))              # L x 1
+#     # Stack moments across households
+#     g = vec(sum(g_all, dims=1))              # L x 1
 
-    return dot(g, W * g)
-end
+#     return dot(g, W * g)
+# end
 
-# Initial values
-init_params = vcat(params_hat_baseline, 1)
+# # Initial values
+# init_params = vcat(params_hat_baseline, 1)
 
-# GMM estimation
-R = 80
-lb = fill(-Inf, length(init_params))
-lb[end] = 1e-6         # last parameter > 0
+# # GMM estimation
+# R = 80
+# lb = fill(-Inf, length(init_params))
+# lb[end] = 1e-6         # last parameter > 0
 
-ub = fill(Inf, length(init_params))  # no upper bounds
-result = optimize(
-    p -> msm_objective_efficient(p, test_scores, sports, distance, y, R),
-    lb,
-    ub,
-    init_params,
-    Fminbox(LBFGS()),
-    options
-)
+# ub = fill(Inf, length(init_params))  # no upper bounds
+# result = optimize(
+#     p -> msm_objective_efficient(p, test_scores, sports, distance, y, R),
+#     lb,
+#     ub,
+#     init_params,
+#     Fminbox(LBFGS()),
+#     options
+# )
 
 
-params_hat = Optim.minimizer(result)
-alpha_hat = params_hat[1]
-beta_hat = params_hat[2:3]
-xi_hat = [0.0; params_hat[4:end-1]]   # xi1 = 0
-sigma_b_hat = params_hat[end]
+# params_hat = Optim.minimizer(result)
+# alpha_hat = params_hat[1]
+# beta_hat = params_hat[2:3]
+# xi_hat = [0.0; params_hat[4:end-1]]   # xi1 = 0
+# sigma_b_hat = params_hat[end]
 
-println("----------------------------")
-println("MLE Results")
-println("----------------------------")
-println("Estimated alpha: ", alpha_hat)
-println("Estimated beta: ", beta_hat)
-println("Estimated xi: ", xi_hat)
+# println("----------------------------")
+# println("MLE Results")
+# println("----------------------------")
+# println("Estimated alpha: ", alpha_hat)
+# println("Estimated beta: ", beta_hat)
+# println("Estimated xi: ", xi_hat)
 
-# -------------------- Latex result --------------------
-parameter_xi = ["xi_$j" for j in 1:J]  # creates ["xi_1", "xi_2", ..., "xi_J"]
+# # -------------------- Latex result --------------------
+# parameter_xi = [raw"\$\xi_$j\$" for j in 1:J]
 
-parameters = vcat(["alpha", "beta1", "beta2"], parameter_xi, ["sigma_b"])
-vals1 = vcat([alpha_hat, beta_hat[1], beta_hat[2]], xi_hat, [sigma_b_hat])
+# # Combine with other parameters
+# parameters = vcat([raw"\$\alpha\$",
+#                    raw"\$\beta1\$",
+#                    raw"\$\beta2\$"], parameter_xi, [raw"\$\sigma_b\$"])
+# vals1 = vcat([alpha_hat, beta_hat[1], beta_hat[2]], xi_hat, [sigma_b_hat])
 
-df1 = DataFrame(
-    Parameter=parameters,
-    Estimate=round.(vals1, digits=6)
-)
+# df1 = DataFrame(
+#     Parameter=parameters,
+#     Estimate=round.(vals1, digits=6)
+# )
 
-tab1 = String(latexify(df1, env=:tabular, latex=false))
+# tab1 = String(latexify(df1, env=:tabular, latex=false))
 
-latex_table1 = """
-\\begin{table}[htbp]
-\\centering
-$tab1
-\\caption{Parameter estimates for the school full simulated choice model using Simulated Method of Moments.}
-\\end{table}
-"""
+# latex_table1 = """
+# \\begin{table}[htbp]
+# \\centering
+# $tab1
+# \\caption{Parameter estimates for the school full simulated choice model using Simulated Method of Moments.}
+# \\end{table}
+# """
 
-open(joinpath(latex_dir, "table_11.tex"), "w") do f
-    write(f, latex_table1)
-end
+# open(joinpath(latex_dir, "table_11.tex"), "w") do f
+#     write(f, latex_table1)
+# end
 
-println("Table saved to latex/table_11.tex")
-println(latex_table1)
+# println("Table saved to latex/table_11.tex")
+# println(latex_table1)
