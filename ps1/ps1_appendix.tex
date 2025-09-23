@@ -154,14 +154,14 @@ driven by the choice decision.
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\textwidth]{figures/histogram_distance_all_schools.png}
+    \includegraphics[width=0.4\textwidth]{figures/histogram_distance_all_schools.png}
     \caption{Histogram of distances to all schools.}
     \label{fig:distance_all}
 \end{figure}
 
 \begin{figure}[H]
     \centering
-    \includegraphics[width=0.7\textwidth]{figures/histogram_min_distance_schools.png}
+    \includegraphics[width=0.4\textwidth]{figures/histogram_min_distance_schools.png}
     \caption{Histogram of distances to the chosen school (minimum distance).}
     \label{fig:distance_chosen}
 \end{figure}
@@ -294,24 +294,24 @@ Let \(j(i)\) denote the observed choice of household \(i\). The simulated log-li
 \]
 where \(\theta=(\beta_1,\sigma_b,\beta_2,\xi_{1:J},\alpha)\).
 
-For a generic parameter \(\psi\in\{\beta_1,\sigma_b,\beta_2,\xi_1,\dots,\xi_J,\alpha\}\) we have
+For a generic parameter \(\theta\in\{\beta_1,\sigma_b,\beta_2,\xi_1,\dots,\xi_J,\alpha\}\) we have
 \[
-\frac{\partial \widehat{\mathcal{L}}}{\partial \psi}
+\frac{\partial \widehat{\mathcal{L}}}{\partial \theta}
 = \sum_{i=1}^N \frac{1}{\widehat{P}_{i j(i)}}\;
-  \frac{\partial \widehat{P}_{i j(i)}}{\partial \psi}
+  \frac{\partial \widehat{P}_{i j(i)}}{\partial \theta}
 = \sum_{i=1}^N \frac{1}{\widehat{P}_{i j(i)}}\;
-  \frac{1}{R}\sum_{r=1}^R \frac{\partial P_{i j(i)}^{(r)}}{\partial \psi}.
+  \frac{1}{R}\sum_{r=1}^R \frac{\partial P_{i j(i)}^{(r)}}{\partial \theta}.
 \]
-For computing the $\frac{\partial P_{i j(i)}^{(r)}}{\partial \psi}$ we can use the chain rule and starting analyzing the he derivative of a logit probability with respect to the utilities is
+For computing the $\frac{\partial P_{i j(i)}^{(r)}}{\partial \theta}$ we can use the chain rule and starting analyzing the he derivative of a logit probability with respect to the utilities is
 \[
 \frac{\partial P_{ij}^{(r)}}{\partial V_{ik}^{(r)}}
 = P_{ij}^{(r)}\big(1_{\{j=k\}}-P_{ik}^{(r)}\big).
 \]
 Hence
 \[
-\frac{\partial P_{ij}^{(r)}}{\partial \psi}
+\frac{\partial P_{ij}^{(r)}}{\partial \theta}
 = \sum_{k=1}^J P_{ij}^{(r)}\big(1_{\{j=k\}}-P_{ik}^{(r)}\big)
-  \frac{\partial V_{ik}^{(r)}}{\partial \psi}.
+  \frac{\partial V_{ik}^{(r)}}{\partial \theta}.
 \]
 
 The derivatives of \(V_{ik}^{(r)}\) for the parameters depends specifically of the functional form of the utility and in this case we get
@@ -329,13 +329,13 @@ The derivatives of \(V_{ik}^{(r)}\) for the parameters depends specifically of t
 
 Combining the pieces,
 \[
-\frac{\partial \widehat{\mathcal{L}}}{\partial \psi}
+\frac{\partial \widehat{\mathcal{L}}}{\partial \theta}
 = \sum_{i=1}^N \frac{1}{\widehat{P}_{i j(i)}}\;
   \frac{1}{R}\sum_{r=1}^R
     \sum_{k=1}^J P_{i j(i)}^{(r)}\big(1_{\{j(i)=k\}}-P_{ik}^{(r)}\big)
-    \frac{\partial V_{ik}^{(r)}}{\partial \psi},
+    \frac{\partial V_{ik}^{(r)}}{\partial \theta},
 \]
-with \(\partial V_{ik}^{(r)}/\partial\psi\) given above for each parameter.
+with \(\partial V_{ik}^{(r)}/\partial\theta\) given above for each parameter.
 
 
 
@@ -371,9 +371,15 @@ The instruments are functions of the exogenous variables that shift utilities bu
 In this setting, the instruments are the school characteristics that are  test scores, sports, distance.
 
 \subsection*{9. Calculate the Jacobian of the MSM estimator.}
-In the next matrix we present the estimates of the Jacobian of the MSM estimator.
+Let's copute the derivative
 
-TO INSERT
+$$\frac{\partial g_H(\theta)}{\partial \theta} 
+= -\frac{1}{N} \sum_{i=1}^{N} \sum_{j=1}^{J} z_{ij} 
+\left( \frac{\partial \hat{P}_{ij}(\theta)}{\partial \theta} \right).
+$$
+The derivatives with respect to $\hat{P}_{ij}$ is computed in section 6.
+
+
 \subsection*{10. Estimate the Parameters of the MSM estimator.}
 In the following table, we present the estimates of  the Parameters of the MSM estimator.
 
