@@ -8,18 +8,25 @@ figures_dir = joinpath(@__DIR__, "figures")
 if !isdir(figures_dir)
     mkdir(figures_dir)
 end
-
+# Create latex directory if it doesn't exist
+latex_dir = joinpath(@__DIR__, "latex")
+if !isdir(latex_dir)
+    mkdir(latex_dir)
+end
 println("Starting analysis...")
 
-#open("log_result.txt", "w") do f
-#redirect_stdout(f) do
 
 options = Optim.Options(
     g_tol=1e-6,          # gradient tolerance
-    iterations=100,     # max iterations
-    f_calls_limit=3000,  # max total calls to your objective function
+    iterations=500,     # max iterations
     show_trace=true,
-    show_every=10       # print trace every 100 iterations
+    show_every=50       # print trace every 50 iterations
+)
+options = Optim.Options(
+    g_tol=1e-6,          # gradient tolerance
+    iterations=1,     # max iterations
+    show_trace=true,
+    show_every=50       # print trace every 50 iterations
 )
 
 school_dataset = CSV.read("schools_dataset.csv", DataFrame)
@@ -150,8 +157,6 @@ function loglik_grad_full!(G, params, test_scores, sports, distance, y)
     end
 
     G .*= -1.0   # because objective is -LL
-    print("Gradient: ", G)
-    println("Parameters: ", params)
     return G
 end
 
@@ -203,7 +208,11 @@ $tab1
 \\end{table}
 """
 
-println(latex_table1)
+open(joinpath(latex_dir, "table_4.tex"), "w") do f
+    write(f, latex_table1)
+end
+
+println("Table saved to latex/table_4.tex")
 
 ### 5
 println("--------------------------------")
@@ -268,8 +277,13 @@ $tab2
 \\end{table}
 """
 
-println(latex_table2)
 
+
+open(joinpath(latex_dir, "table_5.tex"), "w") do f
+    write(f, latex_table2)
+end
+
+println("Table saved to latex/table_5.tex")
 
 ### 6
 # Latex
@@ -290,12 +304,20 @@ params_hat_baseline = [
     -0.897948
 ]  # from previous estimation  
 
+
 options = Optim.Options(
-    iterations=10,      # max inner optimizer iterations per barrier step
-    f_calls_limit=1000,  # max total calls to your objective function
+    g_tol=1e-6,          # gradient tolerance
+    iterations=40,       # max iterations
+    outer_iterations = 10,
     show_trace=true,
-    g_tol=1e-6,         # gradient tolerance
-    show_every=10,        # print trace every iteration
+    show_every=10       # print trace every 100 iterations
+)
+options = Optim.Options(
+    g_tol=1e-6,          # gradient tolerance
+    iterations=1,       # max iterations
+    outer_iterations = 1,
+    show_trace=true,
+    show_every=10       # print trace every 100 iterations
 )
 function loglik_joint_simulated_MC(params, test_scores, sports, distance, y, R)
     N, J = size(distance)
@@ -438,18 +460,17 @@ $tab1
 \\caption{Parameter estimates for the school full simulated choice model using Monte Carlo methods.}
 \\end{table}
 """
+open(joinpath(latex_dir, "table_7_1.tex"), "w") do f
+    write(f, latex_table1)
+end
 
+println("Table saved to latex/table_7_1.tex")
 println(latex_table1)
 
 println("--------------------------------")
 println("Estimating the logit model with simulation using gaussian Hermite quadrature...")
 println("--------------------------------")
-options = Optim.Options(
-    iterations=20,      # max inner optimizer iterations per barrier step
-    f_calls_limit=500,  # max total calls to your objective function
-    show_trace=false,
-    g_tol=1e-6,         # gradient tolerance
-)
+
 function loglik_joint_simulated_GH(params, test_scores, sports, distance, y, k)
     N, J = size(distance)
 
@@ -646,6 +667,11 @@ $tab1
 \\end{table}
 """
 
+open(joinpath(latex_dir, "table_7_2.tex"), "w") do f
+    write(f, latex_table1)
+end
+
+println("Table saved to latex/table_7_2.tex")
 println(latex_table1)
 
 
@@ -658,34 +684,157 @@ println("--------------------------------")
 
 
 
-function msm_moments(params, test_scores, sports, distance, y, R)
+# function msm_moments(params, test_scores, sports, distance, y, R)
+#     N, J = size(distance)
+#     alpha = params[1]
+#     beta1_mu, beta2 = params[2:3]
+#     xi = [0.0; params[4:3+J-1]]   # xi1 = 0 for normalization
+#     sigma_b = params[3+J]
+
+#     # Simulate random coefficients
+#     beta1_draws = rand(Normal(beta1_mu, sigma_b), R)
+
+#     # Initialize simulated probabilities P_ij
+#     P = zeros(N, J)
+
+#     for i in 1:N
+#         P_i = zeros(J)
+#         for r in 1:R
+#             beta1 = beta1_draws[r]
+#             # compute utility for household i
+#             U = [beta1 * test_scores[j] + beta2 * sports[j] + xi[j] - alpha * distance[i, j] for j in 1:J]
+#             expU = exp.(U .- maximum(U))  # numerical stability
+#             P_i .+= expU ./ sum(expU)
+#         end
+#         P[i, :] .= P_i ./ R   # average over R
+#     end
+
+#     # Instruments: test_scores, sports, distance
+#     # Compute moments per household-school-instrument
+#     g = zeros(N, J * 3)  # each school has 3 instruments
+#     for i in 1:N
+#         for j in 1:J
+#             z_ij = [test_scores[j], sports[j], distance[i, j]]
+#             g[i, (3*(j-1)+1):(3*j)] .= (Int(y[i] == j) - P[i, j]) .* z_ij
+#         end
+#     end
+
+#     return g
+
+
+# end
+
+# function msm_grad!(G, params, test_scores, sports, distance, y, R)
+#     N, J = size(distance)
+#     nparams = length(params)
+
+#     # unpack parameters
+#     alpha = params[1]
+#     beta1_mu = params[2]
+#     beta2 = params[3]
+#     xi = [0.0; params[4:3+J-1]]
+#     sigma_b = params[3+J]
+
+#     # simulate random coefficients
+#     beta1_draws = rand(Normal(beta1_mu, sigma_b), R)
+
+#     # storage
+#     g_matrix = zeros(N, J * 3)      # same as msm_moments
+#     J_g = zeros(N * J * 3, nparams)   # Jacobian (flattened moments × params)
+
+#     # loop over households
+#     for i in 1:N
+#         P_i = zeros(J)
+#         dP_dθ = zeros(J, nparams)   # derivative of probs wrt params
+
+#         # simulation loop
+#         for r in 1:R
+#             β1 = beta1_draws[r]
+#             U = [β1 * test_scores[j] + beta2 * sports[j] + xi[j] - alpha * distance[i, j] for j in 1:J]
+#             expU = exp.(U .- maximum(U))
+#             P = expU ./ sum(expU)
+
+#             # compute dU/dθ for each j
+#             dU = [zeros(nparams) for j in 1:J]
+#             for j in 1:J
+#                 dU[j][1] = -distance[i, j]     # ∂U/∂α
+#                 dU[j][2] = test_scores[j]     # ∂U/∂β1_μ
+#                 dU[j][3] = sports[j]          # ∂U/∂β2
+#                 if j > 1
+#                     dU[j][3+(j-1)] = 1.0      # xi_j
+#                 end
+#                 dU[j][end] = (β1 - beta1_mu) / sigma_b * test_scores[j] # ∂ wrt σ_b
+#             end
+
+#             # E_P[dU]
+#             E_dU = zeros(nparams)
+#             for j in 1:J
+#                 E_dU .+= P[j] .* dU[j]
+#             end
+
+#             # dP/dθ
+#             for j in 1:J
+#                 dP_dθ[j, :] .+= P[j] .* (dU[j] .- E_dU)
+#             end
+
+#             P_i .+= P
+#         end
+
+#         # average over R
+#         P_i ./= R
+#         dP_dθ ./= R
+
+#         # compute moments and Jacobian
+#         for j in 1:J
+#             z_ij = [test_scores[j], sports[j], distance[i, j]]
+#             idx = (3*(j-1)+1):(3*j)
+#             g_matrix[i, idx] .= (Int(y[i] == j) - P_i[j]) .* z_ij
+
+#             for q in 1:nparams
+#                 J_g[idx, q] .+= -z_ij .* dP_dθ[j, q]
+#             end
+#         end
+#     end
+
+#     # flatten moments
+#     g_vec = vec(g_matrix)
+
+#     # gradient = 2 J_g' * g
+#     G[:] = 2 .* (J_g' * g_vec)
+#     return nothing
+# end
+
+
+function msm_moments(params, test_scores, sports, distance, y, Q)
     N, J = size(distance)
     alpha = params[1]
     beta1_mu, beta2 = params[2:3]
     xi = [0.0; params[4:3+J-1]]   # xi1 = 0 for normalization
     sigma_b = params[3+J]
 
-    # Simulate random coefficients
-    beta1_draws = rand(Normal(beta1_mu, sigma_b), R)
+    # Gauss-Hermite quadrature points and weights
+    nodes, weights = gausshermite(Q)
+    # scale nodes for Normal(beta1_mu, sigma_b)
+    nodes = sqrt(2) * sigma_b * nodes .+ beta1_mu
+    weights = weights ./ sqrt(pi)  # weights sum to 1
 
-    # Initialize simulated probabilities P_ij
+    # initialize probabilities
     P = zeros(N, J)
 
     for i in 1:N
         P_i = zeros(J)
-        for r in 1:R
-            beta1 = beta1_draws[r]
-            # compute utility for household i
-            U = [beta1 * test_scores[j] + beta2 * sports[j] + xi[j] - alpha * distance[i, j] for j in 1:J]
-            expU = exp.(U .- maximum(U))  # numerical stability
-            P_i .+= expU ./ sum(expU)
+        for q in 1:Q
+            β1 = nodes[q]
+            w = weights[q]
+            U = [β1 * test_scores[j] + beta2 * sports[j] + xi[j] - alpha * distance[i, j] for j in 1:J]
+            expU = exp.(U .- maximum(U))
+            P_i .+= w .* (expU ./ sum(expU))
         end
-        P[i, :] .= P_i ./ R   # average over R
+        P[i, :] .= P_i
     end
 
-    # Instruments: test_scores, sports, distance
-    # Compute moments per household-school-instrument
-    g = zeros(N, J * 3)  # each school has 3 instruments
+    # compute moments
+    g = zeros(N, J * 3)
     for i in 1:N
         for j in 1:J
             z_ij = [test_scores[j], sports[j], distance[i, j]]
@@ -694,71 +843,59 @@ function msm_moments(params, test_scores, sports, distance, y, R)
     end
 
     return g
-
-
 end
 
-function msm_grad!(G, params, test_scores, sports, distance, y, R)
+function msm_grad!(G, params, test_scores, sports, distance, y, Q)
     N, J = size(distance)
     nparams = length(params)
 
-    # unpack parameters
     alpha = params[1]
-    beta1_mu = params[2]
-    beta2 = params[3]
+    beta1_mu, beta2 = params[2:3]
     xi = [0.0; params[4:3+J-1]]
     sigma_b = params[3+J]
 
-    # simulate random coefficients
-    beta1_draws = rand(Normal(beta1_mu, sigma_b), R)
+    nodes, weights = gausshermite(Q)
+    nodes = sqrt(2) * sigma_b * nodes .+ beta1_mu
+    weights = weights ./ sqrt(pi)
 
-    # storage
-    g_matrix = zeros(N, J * 3)      # same as msm_moments
-    J_g = zeros(N * J * 3, nparams)   # Jacobian (flattened moments × params)
+    g_matrix = zeros(N, J * 3)
+    J_g = zeros(N * J * 3, nparams)
 
-    # loop over households
     for i in 1:N
         P_i = zeros(J)
-        dP_dθ = zeros(J, nparams)   # derivative of probs wrt params
+        dP_dθ = zeros(J, nparams)
 
-        # simulation loop
-        for r in 1:R
-            β1 = beta1_draws[r]
+        for q in 1:Q
+            β1 = nodes[q]
+            w = weights[q]
+
             U = [β1 * test_scores[j] + beta2 * sports[j] + xi[j] - alpha * distance[i, j] for j in 1:J]
             expU = exp.(U .- maximum(U))
             P = expU ./ sum(expU)
 
-            # compute dU/dθ for each j
             dU = [zeros(nparams) for j in 1:J]
             for j in 1:J
-                dU[j][1] = -distance[i, j]     # ∂U/∂α
-                dU[j][2] = test_scores[j]     # ∂U/∂β1_μ
-                dU[j][3] = sports[j]          # ∂U/∂β2
+                dU[j][1] = -distance[i, j]           # ∂U/∂α
+                dU[j][2] = test_scores[j]            # ∂U/∂β1_mu
+                dU[j][3] = sports[j]                  # ∂U/∂β2
                 if j > 1
-                    dU[j][3+(j-1)] = 1.0      # xi_j
+                    dU[j][3+(j-1)] = 1.0             # xi_j
                 end
-                dU[j][end] = (β1 - beta1_mu) / sigma_b * test_scores[j] # ∂ wrt σ_b
+                dU[j][end] = (β1 - beta1_mu) / sigma_b * test_scores[j]  # ∂/∂σ_b
             end
 
-            # E_P[dU]
             E_dU = zeros(nparams)
             for j in 1:J
                 E_dU .+= P[j] .* dU[j]
             end
 
-            # dP/dθ
             for j in 1:J
-                dP_dθ[j, :] .+= P[j] .* (dU[j] .- E_dU)
+                dP_dθ[j, :] .+= w .* P[j] .* (dU[j] .- E_dU)
             end
 
-            P_i .+= P
+            P_i .+= w .* P
         end
 
-        # average over R
-        P_i ./= R
-        dP_dθ ./= R
-
-        # compute moments and Jacobian
         for j in 1:J
             z_ij = [test_scores[j], sports[j], distance[i, j]]
             idx = (3*(j-1)+1):(3*j)
@@ -770,19 +907,15 @@ function msm_grad!(G, params, test_scores, sports, distance, y, R)
         end
     end
 
-    # flatten moments
     g_vec = vec(g_matrix)
-
-    # gradient = 2 J_g' * g
     G[:] = 2 .* (J_g' * g_vec)
     return nothing
 end
 
 
 
-
-function msm_objective(params, test_scores, sports, distance, y, R)
-    g_matrix = msm_moments(params, test_scores, sports, distance, y, R)
+function msm_objective(params, test_scores, sports, distance, y, k)
+    g_matrix = msm_moments(params, test_scores, sports, distance, y, k)
     g_vec = vec(g_matrix)      # flatten into 1D vector
     return dot(g_vec, g_vec)   # now works
 end
@@ -796,8 +929,8 @@ lb = fill(-Inf, length(init_params))
 lb[end] = 1e-6         # last parameter > 0
 
 ub = fill(Inf, length(init_params))  # no upper bounds
-f_msm(p) = msm_objective(p, test_scores, sports, distance, y, R)
-g_msm!(G, p) = msm_grad!(G, p, test_scores, sports, distance, y, R)
+f_msm(p) = msm_objective(p, test_scores, sports, distance, y, k)
+g_msm!(G, p) = msm_grad!(G, p, test_scores, sports, distance, y, k)
 
 obj_msm = OnceDifferentiable(f_msm, g_msm!, init_params)
 result = optimize(obj_msm, lb, ub, init_params, Fminbox(LBFGS()), options)
@@ -838,7 +971,13 @@ $tab1
 \\end{table}
 """
 
+open(joinpath(latex_dir, "table_10.tex"), "w") do f
+    write(f, latex_table1)
+end
+
+println("Table saved to latex/table_10.tex")
 println(latex_table1)
+
 
 ### 9
 println("--------------------------------")
@@ -907,7 +1046,7 @@ jacobian = jacobian_msm(params_hat, test_scores, sports, distance, y, 100)
 println("Jacobian size: ", size(jacobian))
 println("The Jacobian matrix G is ", jacobian)
 
-df1 = DataFrame(jacobian)
+df1 = DataFrame(jacobian, :auto)
 tab_jacobian = String(latexify(df1, env=:tabular, latex=false))
 latex_table_jacobian = """
 \\begin{table}[htbp]
@@ -916,7 +1055,13 @@ $tab_jacobian
 \\caption{Jacobian matrix of the moments.}
 \\end{table}
 """
+open(joinpath(latex_dir, "table_9.tex"), "w") do f
+    write(f, latex_table_jacobian)
+end
+
+println("Table saved to latex/table_9.tex")
 println(latex_table_jacobian)
+
 
 ### 11
 println("--------------------------------")
@@ -994,7 +1139,9 @@ $tab1
 \\end{table}
 """
 
-println(latex_table1)
+open(joinpath(latex_dir, "table_11.tex"), "w") do f
+    write(f, latex_table1)
+end
 
-#   end
-#end
+println("Table saved to latex/table_11.tex")
+println(latex_table1)
