@@ -22,7 +22,12 @@ options = Optim.Options(
     show_trace=true,
     show_every=50       # print trace every 50 iterations
 )
-
+options = Optim.Options(
+    g_tol=1e-6,          # gradient tolerance
+    iterations=1,     # max iterations
+    show_trace=true,
+    show_every=1       # print trace every 50 iterations
+)
 school_dataset = CSV.read("schools_dataset.csv", DataFrame)
 println("Number of rows: ", size(school_dataset, 1))
 println("Number of columns: ", size(school_dataset, 2))
@@ -184,9 +189,9 @@ println("Estimated xi: ", xi_hat)
 parameter_xi = [raw"\$\xi_$j\$" for j in 1:J]
 
 # Combine with other parameters
-parameters = vcat([raw"\$\alpha\$",
-                   raw"\$\beta1\$",
-                   raw"\$\beta2\$"], parameter_xi)
+parameters = vcat([raw"$\alpha$",
+                   raw"$\beta_1$",
+                   raw"\beta_2$"], parameter_xi)
 
 vals1 = vcat([alpha_hat, beta_hat[1], beta_hat[2]], xi_hat)  # concatenate values
 
@@ -259,9 +264,9 @@ println("Estimated xi: ", xi_hat)
 parameter_xi = [raw"\$\xi_$j\$" for j in 1:J]
 
 # Combine with other parameters
-parameters = vcat([raw"\$\alpha\$",
-                   raw"\$\beta1\$",
-                   raw"\$\beta2\$"], parameter_xi)
+parameters = vcat([raw"$\alpha$",
+                   raw"$\beta_1$",
+                   raw"$\beta_2$"], parameter_xi)
 
 
 df2 = DataFrame(
@@ -440,9 +445,9 @@ println("Estimated xi: ", xi_hat)
 parameter_xi = [raw"\$\xi_$j\$" for j in 1:J]
 
 # Combine with other parameters
-parameters = vcat([raw"\$\alpha\$",
-                   raw"\$\beta1\$",
-                   raw"\$\beta2\$"], parameter_xi, [raw"\$\sigma_b\$"])
+parameters = vcat([raw"$\alpha$",
+                   raw"$\beta_1$",
+                   raw"\beta_2$"], parameter_xi, [raw"$\sigma_b$"])
 
 vals1 = vcat([alpha_hat, beta_hat[1], beta_hat[2]], xi_hat, [sigma_b_hat])
 
@@ -650,9 +655,9 @@ println("Estimated xi: ", xi_hat)
 parameter_xi = [raw"\$\xi_$j\$" for j in 1:J]
 
 # Combine with other parameters
-parameters = vcat([raw"\$\alpha\$",
-                   raw"\$\beta1\$",
-                   raw"\$\beta2\$"], parameter_xi, [raw"\$\sigma_b\$"])
+parameters = vcat([raw"$\alpha$",
+                   raw"$\beta_1$",
+                   raw"\beta_2$"], parameter_xi, [raw"$\sigma_b$"])
 vals1 = vcat([alpha_hat, beta_hat[1], beta_hat[2]], xi_hat, [sigma_b_hat])
 
 df1 = DataFrame(
@@ -836,9 +841,9 @@ println("Estimated xi: ", xi_hat)
 parameter_xi = [raw"\$\xi_$j\$" for j in 1:J]
 
 # Combine with other parameters
-parameters = vcat([raw"\$\alpha\$",
-                   raw"\$\beta1\$",
-                   raw"\$\beta2\$"], parameter_xi, [raw"\$\sigma_b\$"])
+parameters = vcat([raw"$\alpha$",
+                   raw"$\beta_1$",
+                   raw"\beta_2$"], parameter_xi, [raw"$\sigma_b$"])
 vals1 = vcat([alpha_hat, beta_hat[1], beta_hat[2]], xi_hat, [sigma_b_hat])
 
 df1 = DataFrame(
@@ -992,9 +997,9 @@ println("Jacobian size: ", size(jacobian))
 # parameter_xi = [raw"\$\xi_$j\$" for j in 1:J]
 
 # # Combine with other parameters
-# parameters = vcat([raw"\$\alpha\$",
-#                    raw"\$\beta1\$",
-#                    raw"\$\beta2\$"], parameter_xi, [raw"\$\sigma_b\$"])
+# parameters = vcat([raw"$\alpha$",
+#                    raw"$\beta_1$",
+#                    raw"\beta_2$"], parameter_xi, [raw"$\sigma_b$"])
 # vals1 = vcat([alpha_hat, beta_hat[1], beta_hat[2]], xi_hat, [sigma_b_hat])
 
 # df1 = DataFrame(
