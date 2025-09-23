@@ -17,11 +17,11 @@ open("log_result.txt", "w") do f
     redirect_stdout(f) do
 
         options = Optim.Options(
-            g_tol = 1e-6,          # gradient tolerance
-            iterations = 1000,     # max iterations
-            f_calls_limit = 5000,  # max total calls to your objective function
-            show_trace = true,
-            show_every = 100       # print trace every 100 iterations
+            g_tol=1e-6,          # gradient tolerance
+            iterations=1000,     # max iterations
+            f_calls_limit=5000,  # max total calls to your objective function
+            show_trace=true,
+            show_every=100       # print trace every 100 iterations
         )
 
         school_dataset = CSV.read("schools_dataset.csv", DataFrame)
@@ -79,10 +79,10 @@ open("log_result.txt", "w") do f
         @assert length(y) == N
         @assert length(test_scores) == J
         @assert length(sports) == J
-        @assert size( distance, 1) == N
+        @assert size(distance, 1) == N
         @assert size(distance, 2) == J
 
-        
+
         ### 4 Estimate the plain logit model by maximimum likelihood.
         println("--------------------------------")
         println("Problem 2.4")
@@ -114,20 +114,60 @@ open("log_result.txt", "w") do f
             return -LL
         end
 
+        function loglik_grad_full!(G, params, test_scores, sports, distance, y)
+            N = length(y)
+            J = length(test_scores)
+
+            alpha = params[1]
+            beta1, beta2 = params[2:3]
+            xi = [0.0; params[4:3+J-1]]   # xi1 = 0 for normalization
+
+            # reset gradient
+            G[:] .= 0.0
+
+            for i in 1:N
+                # utilities
+                Ui = [beta1 * test_scores[j] + beta2 * sports[j] + xi[j] - alpha * distance[i, j] for j in 1:J]
+
+                # choice probs
+                expU = exp.(Ui .- maximum(Ui))  # stability
+                P = expU ./ sum(expU)
+
+                yi = y[i]
+
+                # contributions for each parameter
+                # dUi/dalpha = -distance[i,j]
+                G[1] += -distance[i, yi] - sum(P[j] * (-distance[i, j]) for j in 1:J)
+
+                # dUi/dbeta1 = test_scores[j]
+                G[2] += test_scores[yi] - sum(P[j] * test_scores[j] for j in 1:J)
+
+                # dUi/dbeta2 = sports[j]
+                G[3] += sports[yi] - sum(P[j] * sports[j] for j in 1:J)
+
+                # dUi/dxi_m = indicator(j==m), for m=2..J
+                for m in 2:J
+                    G[3+m-1] += (yi == m ? 1.0 : 0.0) - P[m]
+                end
+            end
+
+            G .*= -1.0   # because objective is -LL
+        end
+
         # Initial values
         init_params = zeros(3 + J - 1)
         println("Initial parameters: ", init_params)
 
         # MLE estimation
         println("Starting optimization...")
-        result = optimize(
-            p -> loglik_joint_full(p, test_scores, sports, distance, y),
-            init_params,
-            GradientDescent(),
-            options
-        )
+        f(p) = loglik_joint_full(p, test_scores, sports, distance, y)
+        g!(G, p) = loglik_grad_full!(G, p, test_scores, sports, distance, y)
 
-        params_hat_baseline = Optim.minimizer(result)
+        obj = OnceDifferentiable(f, g!, init_params)
+        result = optimize(obj, init_params, LBFGS(), options)
+
+        params_hat = Optim.minimizer(result)
+
         alpha_hat = params_hat_baseline[1]
         beta_hat = params_hat_baseline[2:3]
         xi_hat = [0.0; params_hat_baseline[4:end]]   # xi1 = 0
@@ -196,7 +236,7 @@ open("log_result.txt", "w") do f
         result = optimize(
             p -> loglik_joint_restricted(p, y),
             init_params,
-            GradientDescent(),
+            LBFGS(),
             options
         )
 
@@ -250,11 +290,11 @@ open("log_result.txt", "w") do f
         ]  # from previous estimation  
 
         options = Optim.Options(
-            iterations = 5,      # max inner optimizer iterations per barrier step
-            f_calls_limit = 300,  # max total calls to your objective function
-            show_trace = true,
-            g_tol = 1e-6,         # gradient tolerance
-            show_every = 1        # print trace every iteration
+            iterations=5,      # max inner optimizer iterations per barrier step
+            f_calls_limit=300,  # max total calls to your objective function
+            show_trace=true,
+            g_tol=1e-6,         # gradient tolerance
+            show_every=1        # print trace every iteration
         )
         function loglik_joint_simulated_MC(params, test_scores, sports, distance, y, R)
             N, J = size(distance)
@@ -298,15 +338,68 @@ open("log_result.txt", "w") do f
 
         ub = fill(Inf, length(init_params))  # no upper bounds
 
-        # Use Fminbox to apply bounds
-        result = optimize(
-            p -> loglik_joint_simulated_MC(p, test_scores, sports, distance, y, R),
-            lb,
-            ub,
-            init_params,
-            Fminbox(GradientDescent()),
-            options
-        )
+
+        function loglik_grad!(G, params, test_scores, sports, distance, y, draws)
+            N, J = size(distance)
+
+            alpha = params[1]
+            beta1_mu = params[2]
+            beta2 = params[3]
+            xi = [0.0; params[4:3+J-1]]
+            sigma_b = params[3+J]
+
+            R = size(draws, 1)
+            G[:] .= 0.0
+
+            for i in 1:N
+                prob_sim = zeros(J)
+                dprob_sim = zeros(length(params), J)
+
+                for r in 1:R
+                    beta1 = beta1_mu + sigma_b * draws[r]
+                    U = [beta1 * test_scores[j] + beta2 * sports[j] + xi[j] - alpha * distance[i, j] for j in 1:J]
+                    expU = exp.(U .- maximum(U))
+                    P = expU ./ sum(expU)
+
+                    prob_sim .+= P
+
+                    # derivatives wrt utilities
+                    for m in 1:J
+                        dU = zeros(length(params))
+                        dU[1] = -distance[i, m]
+                        dU[2] = test_scores[m]
+                        dU[3] = sports[m]
+                        if m > 1
+                            dU[3+m-1] = 1.0
+                        end
+                        dU[end] = draws[r] * test_scores[m]
+
+                        for j in 1:J
+                            coeff = P[j] * ((j == m) - P[m])
+                            dprob_sim[:, j] .+= coeff .* dU
+                        end
+                    end
+                end
+
+                prob_sim ./= R
+                dprob_sim ./= R
+
+                yi = y[i]
+                G .+= dprob_sim[:, yi] ./ prob_sim[yi]
+            end
+
+            G .*= -1.0   # because objective is -LL
+        end
+
+        f(p) = loglik_joint_simulated_MC(p, test_scores, sports, distance, y, draws)
+        g!(G, p) = loglik_grad!(G, p, test_scores, sports, distance, y, draws)
+
+        obj = OnceDifferentiable(f, g!, init_params)
+        result = optimize(obj, lb, ub, init_params, Fminbox(LBFGS()), options)
+
+        params_hat = Optim.minimizer(result)
+
+
 
         params_hat = Optim.minimizer(result)
         println("Estimated parameters with constraint: ", params_hat)
@@ -382,6 +475,110 @@ open("log_result.txt", "w") do f
             return -LL
         end
 
+        using FastGaussQuadrature  # for gausshermite
+
+
+        function loglik_grad_GH!(G, params, test_scores, sports, distance, y, k)
+            N, J = size(distance)
+            nparams = length(params)    # should be 3 + J
+
+            # unpack
+            alpha = params[1]
+            beta1_mu = params[2]
+            beta2 = params[3]
+            xi = [0.0; params[4:3+J-1]]   # xi[1]=0
+            sigma_b = params[3+J]
+
+            # Gauss-Hermite nodes & weights
+            x, w = gausshermite(k)                 # x: nodes, w: weights for ∫ e^{-x^2} f(x) dx
+            nodes = beta1_mu .+ sigma_b .* sqrt(2.0) .* x
+            weights = w ./ sqrt(pi)                # transformation to normal integrand
+
+            # zero gradient
+            G[:] .= 0.0
+
+            # loop observations
+            for i in 1:N
+                # accumulate probability (mixture over nodes)
+                prob_mix = zeros(J)
+                # we will accumulate numerator for gradient: sum_m weight_m * P_m * (dU_y - E_P dU)
+                grad_num = zeros(nparams)
+
+                for m in 1:k
+                    β1 = nodes[m]
+                    weight = weights[m]
+
+                    # utilities for node m
+                    U = similar(prob_mix)
+                    for j in 1:J
+                        U[j] = β1 * test_scores[j] + beta2 * sports[j] + xi[j] - alpha * distance[i, j]
+                    end
+
+                    # softmax probabilities (stable)
+                    expU = exp.(U .- maximum(U))
+                    P = expU ./ sum(expU)
+
+                    prob_mix .+= weight .* P
+
+                    # compute dU_j (vector of length nparams) for each j, but we only need E_P[dU] and dU_{y}
+                    # compute E_P_dU = sum_j P[j] * dU_j
+                    E_P_dU = zeros(nparams)
+
+                    # we also store dU for the chosen alternative later (or compute on the fly)
+                    dU_for_j = Vector{Float64}(undef, nparams)  # temporary
+
+                    for j in 1:J
+                        # build dU_j
+                        fill!(dU_for_j, 0.0)
+                        dU_for_j[1] = -distance[i, j]            # dU/dalpha
+                        dU_for_j[2] = test_scores[j]            # dU/dbeta1_mu
+                        dU_for_j[3] = sports[j]                 # dU/dbeta2
+                        if j > 1
+                            xi_index = 3 + (j - 1)              # param index for xi_j
+                            dU_for_j[xi_index] = 1.0
+                        end
+                        dU_for_j[end] = sqrt(2.0) * x[m] * test_scores[j]  # dU/dsigma_b
+
+                        # accumulate expectation under P
+                        @inbounds for q = 1:nparams
+                            E_P_dU[q] += P[j] * dU_for_j[q]
+                        end
+                    end
+
+                    # dU for chosen alt y_i (recompute dU_y to avoid storing whole matrix)
+                    yi = y[i]
+                    dU_y = zeros(nparams)
+                    dU_y[1] = -distance[i, yi]
+                    dU_y[2] = test_scores[yi]
+                    dU_y[3] = sports[yi]
+                    if yi > 1
+                        dU_y[3+(yi-1)] = 1.0
+                    end
+                    dU_y[end] = sqrt(2.0) * x[m] * test_scores[yi]
+
+                    # derivative of P_y wrt params at node m:
+                    # dP_y = P[yi] * (dU_y - E_P_dU)
+                    coeff = P[yi]
+                    @inbounds for q = 1:nparams
+                        grad_num[q] += weight * (coeff * (dU_y[q] - E_P_dU[q]))
+                    end
+                end
+
+                # now grad contribution from observation i:
+                # d log(prob_mix[yi]) = grad_num / prob_mix[yi]
+                pi_y = prob_mix[y[i]]
+                # safety: if pi_y extremely small, it's numerically unstable; user can handle/report later
+                @inbounds for q = 1:nparams
+                    G[q] += grad_num[q] / pi_y
+                end
+            end
+
+            # we computed gradient of LL; the objective returns -LL, so set G = - (dLL)
+            G .*= -1.0
+            return nothing
+        end
+
+
 
         init_params = vcat(params_hat_baseline, 1)
         println("Initial parameters: ", init_params)
@@ -396,16 +593,18 @@ open("log_result.txt", "w") do f
         ub = fill(Inf, length(init_params))  # no upper bounds
 
         # Use Fminbox to apply bounds
-        result = optimize(
-            p -> loglik_joint_simulated_GH(p, test_scores, sports, distance, y, k),
-            lb,
-            ub,
-            init_params,
-            Fminbox(GradientDescent()),
-            options
-        )
+        # objective as you posted
+        f(p) = loglik_joint_simulated_GH(p, test_scores, sports, distance, y, k)
+
+        # gradient wrapper for OnceDifferentiable
+        g!(G, p) = loglik_grad_GH!(G, p, test_scores, sports, distance, y, k)
+
+        obj = OnceDifferentiable(f, g!, init_params)
+        result = optimize(obj, lb, ub, init_params, Fminbox(LBFGS()), options)
 
         params_hat = Optim.minimizer(result)
+
+
         println("Estimated parameters with constraint: ", params_hat)
 
 
@@ -495,6 +694,89 @@ open("log_result.txt", "w") do f
 
         end
 
+        using Distributions
+
+        function msm_grad!(G, params, test_scores, sports, distance, y, R)
+            N, J = size(distance)
+            nparams = length(params)
+
+            # unpack parameters
+            alpha = params[1]
+            beta1_mu = params[2]
+            beta2 = params[3]
+            xi = [0.0; params[4:3+J-1]]
+            sigma_b = params[3+J]
+
+            # simulate random coefficients
+            beta1_draws = rand(Normal(beta1_mu, sigma_b), R)
+
+            # storage
+            g_matrix = zeros(N, J * 3)      # same as msm_moments
+            J_g = zeros(N * J * 3, nparams)   # Jacobian (flattened moments × params)
+
+            # loop over households
+            for i in 1:N
+                P_i = zeros(J)
+                dP_dθ = zeros(J, nparams)   # derivative of probs wrt params
+
+                # simulation loop
+                for r in 1:R
+                    β1 = beta1_draws[r]
+                    U = [β1 * test_scores[j] + beta2 * sports[j] + xi[j] - alpha * distance[i, j] for j in 1:J]
+                    expU = exp.(U .- maximum(U))
+                    P = expU ./ sum(expU)
+
+                    # compute dU/dθ for each j
+                    dU = [zeros(nparams) for j in 1:J]
+                    for j in 1:J
+                        dU[j][1] = -distance[i, j]     # ∂U/∂α
+                        dU[j][2] = test_scores[j]     # ∂U/∂β1_μ
+                        dU[j][3] = sports[j]          # ∂U/∂β2
+                        if j > 1
+                            dU[j][3+(j-1)] = 1.0      # xi_j
+                        end
+                        dU[j][end] = (β1 - beta1_mu) / sigma_b * test_scores[j] # ∂ wrt σ_b
+                    end
+
+                    # E_P[dU]
+                    E_dU = zeros(nparams)
+                    for j in 1:J
+                        E_dU .+= P[j] .* dU[j]
+                    end
+
+                    # dP/dθ
+                    for j in 1:J
+                        dP_dθ[j, :] .+= P[j] .* (dU[j] .- E_dU)
+                    end
+
+                    P_i .+= P
+                end
+
+                # average over draws
+                P_i ./= R
+                dP_dθ ./= R
+
+                # compute moments and Jacobian
+                for j in 1:J
+                    z_ij = [test_scores[j], sports[j], distance[i, j]]
+                    idx = (3*(j-1)+1):(3*j)
+                    g_matrix[i, idx] .= (Int(y[i] == j) - P_i[j]) .* z_ij
+
+                    for q in 1:nparams
+                        J_g[idx, q] .+= -z_ij .* dP_dθ[j, q]
+                    end
+                end
+            end
+
+            # flatten moments
+            g_vec = vec(g_matrix)
+
+            # gradient = 2 J_g' * g
+            G[:] = 2 .* (J_g' * g_vec)
+            return nothing
+        end
+
+
 
 
         function msm_objective(params, test_scores, sports, distance, y, R)
@@ -512,14 +794,12 @@ open("log_result.txt", "w") do f
         lb[end] = 1e-6         # last parameter > 0
 
         ub = fill(Inf, length(init_params))  # no upper bounds
-        result = optimize(
-            p -> msm_objective(p, test_scores, sports, distance, y, R),
-            lb,
-            ub,
-            init_params,
-            Fminbox(GradientDescent()),
-            options
-        )
+        f(p) = msm_objective(p, test_scores, sports, distance, y, R)
+        g!(G, p) = msm_grad!(G, p, test_scores, sports, distance, y, R)
+
+        obj = OnceDifferentiable(f, g!, init_params)
+        result = optimize(obj, lb, ub, init_params, Fminbox(LBFGS()), options)
+
 
 
         params_hat = Optim.minimizer(result)
@@ -673,7 +953,7 @@ open("log_result.txt", "w") do f
             lb,
             ub,
             init_params,
-            Fminbox(GradientDescent()),
+            Fminbox(LBFGS()),
             options
         )
 
