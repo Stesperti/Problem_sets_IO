@@ -684,127 +684,6 @@ println("--------------------------------")
 
 
 
-# function msm_moments(params, test_scores, sports, distance, y, R)
-#     N, J = size(distance)
-#     alpha = params[1]
-#     beta1_mu, beta2 = params[2:3]
-#     xi = [0.0; params[4:3+J-1]]   # xi1 = 0 for normalization
-#     sigma_b = params[3+J]
-
-#     # Simulate random coefficients
-#     beta1_draws = rand(Normal(beta1_mu, sigma_b), R)
-
-#     # Initialize simulated probabilities P_ij
-#     P = zeros(N, J)
-
-#     for i in 1:N
-#         P_i = zeros(J)
-#         for r in 1:R
-#             beta1 = beta1_draws[r]
-#             # compute utility for household i
-#             U = [beta1 * test_scores[j] + beta2 * sports[j] + xi[j] - alpha * distance[i, j] for j in 1:J]
-#             expU = exp.(U .- maximum(U))  # numerical stability
-#             P_i .+= expU ./ sum(expU)
-#         end
-#         P[i, :] .= P_i ./ R   # average over R
-#     end
-
-#     # Instruments: test_scores, sports, distance
-#     # Compute moments per household-school-instrument
-#     g = zeros(N, J * 3)  # each school has 3 instruments
-#     for i in 1:N
-#         for j in 1:J
-#             z_ij = [test_scores[j], sports[j], distance[i, j]]
-#             g[i, (3*(j-1)+1):(3*j)] .= (Int(y[i] == j) - P[i, j]) .* z_ij
-#         end
-#     end
-
-#     return g
-
-
-# end
-
-# function msm_grad!(G, params, test_scores, sports, distance, y, R)
-#     N, J = size(distance)
-#     nparams = length(params)
-
-#     # unpack parameters
-#     alpha = params[1]
-#     beta1_mu = params[2]
-#     beta2 = params[3]
-#     xi = [0.0; params[4:3+J-1]]
-#     sigma_b = params[3+J]
-
-#     # simulate random coefficients
-#     beta1_draws = rand(Normal(beta1_mu, sigma_b), R)
-
-#     # storage
-#     g_matrix = zeros(N, J * 3)      # same as msm_moments
-#     J_g = zeros(N * J * 3, nparams)   # Jacobian (flattened moments × params)
-
-#     # loop over households
-#     for i in 1:N
-#         P_i = zeros(J)
-#         dP_dθ = zeros(J, nparams)   # derivative of probs wrt params
-
-#         # simulation loop
-#         for r in 1:R
-#             β1 = beta1_draws[r]
-#             U = [β1 * test_scores[j] + beta2 * sports[j] + xi[j] - alpha * distance[i, j] for j in 1:J]
-#             expU = exp.(U .- maximum(U))
-#             P = expU ./ sum(expU)
-
-#             # compute dU/dθ for each j
-#             dU = [zeros(nparams) for j in 1:J]
-#             for j in 1:J
-#                 dU[j][1] = -distance[i, j]     # ∂U/∂α
-#                 dU[j][2] = test_scores[j]     # ∂U/∂β1_μ
-#                 dU[j][3] = sports[j]          # ∂U/∂β2
-#                 if j > 1
-#                     dU[j][3+(j-1)] = 1.0      # xi_j
-#                 end
-#                 dU[j][end] = (β1 - beta1_mu) / sigma_b * test_scores[j] # ∂ wrt σ_b
-#             end
-
-#             # E_P[dU]
-#             E_dU = zeros(nparams)
-#             for j in 1:J
-#                 E_dU .+= P[j] .* dU[j]
-#             end
-
-#             # dP/dθ
-#             for j in 1:J
-#                 dP_dθ[j, :] .+= P[j] .* (dU[j] .- E_dU)
-#             end
-
-#             P_i .+= P
-#         end
-
-#         # average over R
-#         P_i ./= R
-#         dP_dθ ./= R
-
-#         # compute moments and Jacobian
-#         for j in 1:J
-#             z_ij = [test_scores[j], sports[j], distance[i, j]]
-#             idx = (3*(j-1)+1):(3*j)
-#             g_matrix[i, idx] .= (Int(y[i] == j) - P_i[j]) .* z_ij
-
-#             for q in 1:nparams
-#                 J_g[idx, q] .+= -z_ij .* dP_dθ[j, q]
-#             end
-#         end
-#     end
-
-#     # flatten moments
-#     g_vec = vec(g_matrix)
-
-#     # gradient = 2 J_g' * g
-#     G[:] = 2 .* (J_g' * g_vec)
-#     return nothing
-# end
-
-
 function msm_moments(params, test_scores, sports, distance, y, Q)
     N, J = size(distance)
     alpha = params[1]
@@ -1044,10 +923,14 @@ end
 
 jacobian = jacobian_msm(params_hat, test_scores, sports, distance, y, 100)
 println("Jacobian size: ", size(jacobian))
-println("The Jacobian matrix G is ", jacobian)
 
-df1 = DataFrame(jacobian, :auto)
+n, m = size(jacobian)
+colnames = ["Col$(i)" for i in 1:m]
+df1 = DataFrame(jacobian, Symbol.(colnames))
+
+# Convert to LaTeX table string
 tab_jacobian = String(latexify(df1, env=:tabular, latex=false))
+
 latex_table_jacobian = """
 \\begin{table}[htbp]
 \\centering
@@ -1055,9 +938,12 @@ $tab_jacobian
 \\caption{Jacobian matrix of the moments.}
 \\end{table}
 """
+
+# Save to file
 open(joinpath(latex_dir, "table_9.tex"), "w") do f
     write(f, latex_table_jacobian)
 end
+
 
 println("Table saved to latex/table_9.tex")
 println(latex_table_jacobian)
