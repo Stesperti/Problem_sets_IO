@@ -22,12 +22,7 @@ options = Optim.Options(
     show_trace=true,
     show_every=50       # print trace every 50 iterations
 )
-options = Optim.Options(
-    g_tol=1e-6,          # gradient tolerance
-    iterations=1,     # max iterations
-    show_trace=true,
-    show_every=1       # print trace every 50 iterations
-)
+
 school_dataset = CSV.read("schools_dataset.csv", DataFrame)
 println("Number of rows: ", size(school_dataset, 1))
 println("Number of columns: ", size(school_dataset, 2))
@@ -186,7 +181,7 @@ println("Estimated xi: ", xi_hat)
 
 
 # -------------------- Latex result --------------------
-parameter_xi = [raw"\$\xi_$j\$" for j in 1:J]
+parameter_xi = ["\$\\xi_$j\$" for j in 1:J]
 
 # Combine with other parameters
 parameters = vcat([raw"$\alpha$",
@@ -203,7 +198,7 @@ df1 = DataFrame(
 tab1 = String(latexify(df1, env=:tabular, latex=false))
 
 latex_table1 = """
-\\begin{table}[htbp]
+\\begin{table}[H]
 \\centering
 $tab1
 \\caption{Parameter estimates for the school full choice model.}
@@ -261,7 +256,7 @@ println(raw"----------------------------")
 println("Estimated xi: ", xi_hat)
 
 # -------------------- Latex result --------------------
-parameter_xi = [raw"\$\xi_$j\$" for j in 1:J]
+parameter_xi = ["\$\\xi_$j\$" for j in 1:J]
 
 # Combine with other parameters
 parameters = vcat([raw"$\alpha$",
@@ -277,7 +272,7 @@ df2 = DataFrame(
 tab2 = String(latexify(df2, env=:tabular, latex=false))
 
 latex_table2 = """
-\\begin{table}[htbp]
+\\begin{table}[H]
 \\centering
 $tab2
 \\caption{Parameter estimates for the school restricted choice model.}
@@ -442,7 +437,7 @@ println("Estimated beta: ", beta_hat)
 println("Estimated xi: ", xi_hat)
 
 # -------------------- Latex result --------------------
-parameter_xi = [raw"\$\xi_$j\$" for j in 1:J]
+parameter_xi = ["\$\\xi_$j\$" for j in 1:J]
 
 # Combine with other parameters
 parameters = vcat([raw"$\alpha$",
@@ -459,7 +454,7 @@ df1 = DataFrame(
 tab1 = String(latexify(df1, env=:tabular, latex=false))
 
 latex_table1 = """
-\\begin{table}[htbp]
+\\begin{table}[H]
 \\centering
 $tab1
 \\caption{Parameter estimates for the school full simulated choice model using Monte Carlo methods.}
@@ -652,7 +647,7 @@ println("Estimated beta: ", beta_hat)
 println("Estimated xi: ", xi_hat)
 
 # -------------------- Latex result --------------------
-parameter_xi = [raw"\$\xi_$j\$" for j in 1:J]
+parameter_xi = ["\$\\xi_$j\$" for j in 1:J]
 
 # Combine with other parameters
 parameters = vcat([raw"$\alpha$",
@@ -668,7 +663,7 @@ df1 = DataFrame(
 tab1 = String(latexify(df1, env=:tabular, latex=false))
 
 latex_table1 = """
-\\begin{table}[htbp]
+\\begin{table}[H]
 \\centering
 $tab1
 \\caption{Parameter estimates for the school full simulated choice model using Gaussian Quadrature methods.}
@@ -825,6 +820,7 @@ result = optimize(obj_msm, lb, ub, init_params, Fminbox(LBFGS()), options)
 
 
 params_hat = Optim.minimizer(result)
+
 alpha_hat = params_hat[1]
 beta_hat = params_hat[2:3]
 xi_hat = [0.0; params_hat[4:end-1]]   # xi1 = 0
@@ -838,7 +834,7 @@ println("Estimated beta: ", beta_hat)
 println("Estimated xi: ", xi_hat)
 
 # -------------------- Latex result --------------------
-parameter_xi = [raw"\$\xi_$j\$" for j in 1:J]
+parameter_xi = ["\$\\xi_$j\$" for j in 1:J]
 
 # Combine with other parameters
 parameters = vcat([raw"$\alpha$",
@@ -854,7 +850,7 @@ df1 = DataFrame(
 tab1 = String(latexify(df1, env=:tabular, latex=false))
 
 latex_table1 = """
-\\begin{table}[htbp]
+\\begin{table}[H]
 \\centering
 $tab1
 \\caption{Parameter estimates for the school full simulated choice model using Simulated Method of Moments.}
@@ -870,70 +866,70 @@ println(latex_table1)
 
 
 ### 9
-println("--------------------------------")
-println("Problem 2.9")
-println("Computing the Jacobian of the Moments")
-println("--------------------------------")
+# println("--------------------------------")
+# println("Problem 2.9")
+# println("Computing the Jacobian of the Moments")
+# println("--------------------------------")
 
-function jacobian_msm(params, test_scores, sports, distance, y, R)
-    N, J = size(distance)
-    K = length(params)
-    L = N * J * 3
-    G = zeros(L, K)
+# function jacobian_msm(params, test_scores, sports, distance, y, R)
+#     N, J = size(distance)
+#     K = length(params)
+#     L = N * J * 3
+#     G = zeros(L, K)
 
-    # For each household, school, instrument
-    idx = 1
-    beta1_mu, beta2 = params[2:3]
-    xi = [0.0; params[4:3+J-1]]
-    alpha = params[1]
-    sigma_b = params[3+J]
+#     # For each household, school, instrument
+#     idx = 1
+#     beta1_mu, beta2 = params[2:3]
+#     xi = [0.0; params[4:3+J-1]]
+#     alpha = params[1]
+#     sigma_b = params[3+J]
 
-    # Simulate random coefficients
-    beta1_draws = rand(Normal(beta1_mu, sigma_b), R)
+#     # Simulate random coefficients
+#     beta1_draws = rand(Normal(beta1_mu, sigma_b), R)
 
-    for i in 1:N
-        P_i = zeros(J)
-        dU_dparams = zeros(J, K)
-        # Compute average choice probabilities and derivatives
-        for r in 1:R
-            beta1 = beta1_draws[r]
-            U = [beta1 * test_scores[j] + beta2 * sports[j] + xi[j] - alpha * distance[i, j] for j in 1:J]
-            expU = exp.(U .- maximum(U))
-            P_r = expU ./ sum(expU)
-            P_i .+= P_r
+#     for i in 1:N
+#         P_i = zeros(J)
+#         dU_dparams = zeros(J, K)
+#         # Compute average choice probabilities and derivatives
+#         for r in 1:R
+#             beta1 = beta1_draws[r]
+#             U = [beta1 * test_scores[j] + beta2 * sports[j] + xi[j] - alpha * distance[i, j] for j in 1:J]
+#             expU = exp.(U .- maximum(U))
+#             P_r = expU ./ sum(expU)
+#             P_i .+= P_r
 
-            # Derivatives of U w.r.t. params
-            for j in 1:J
-                dU = zeros(K)
-                dU[1] = -distance[i, j]             # alpha
-                dU[2] = test_scores[j]             # beta1_mu
-                dU[3] = sports[j]                  # beta2
-                if j > 1
-                    dU[3+(j-1)] = 1.0  # xi_2,...xi_J
-                end
-                # sigma_b derivative can be added if desired
-                dU_dparams[j, :] .+= dU
-            end
-        end
-        P_i ./= R
-        dU_dparams ./= R
+#             # Derivatives of U w.r.t. params
+#             for j in 1:J
+#                 dU = zeros(K)
+#                 dU[1] = -distance[i, j]             # alpha
+#                 dU[2] = test_scores[j]             # beta1_mu
+#                 dU[3] = sports[j]                  # beta2
+#                 if j > 1
+#                     dU[3+(j-1)] = 1.0  # xi_2,...xi_J
+#                 end
+#                 # sigma_b derivative can be added if desired
+#                 dU_dparams[j, :] .+= dU
+#             end
+#         end
+#         P_i ./= R
+#         dU_dparams ./= R
 
-        # Compute Jacobian entries
-        for j in 1:J
-            z_ij = [test_scores[j], sports[j], distance[i, j]]
-            for k_inst in 1:3  # three instruments
-                for m in 1:K
-                    G[idx, m] = -z_ij[k_inst] * (dU_dparams[j, m] * P_i[j] - sum(P_i .* dU_dparams[:, m]))
-                end
-                idx += 1
-            end
-        end
-    end
-    return G
-end
+#         # Compute Jacobian entries
+#         for j in 1:J
+#             z_ij = [test_scores[j], sports[j], distance[i, j]]
+#             for k_inst in 1:3  # three instruments
+#                 for m in 1:K
+#                     G[idx, m] = -z_ij[k_inst] * (dU_dparams[j, m] * P_i[j] - sum(P_i .* dU_dparams[:, m]))
+#                 end
+#                 idx += 1
+#             end
+#         end
+#     end
+#     return G
+# end
 
-jacobian = jacobian_msm(params_hat, test_scores, sports, distance, y, 100)
-println("Jacobian size: ", size(jacobian))
+# jacobian = jacobian_msm(params_hat, test_scores, sports, distance, y, 100)
+# println("Jacobian size: ", size(jacobian))
 
 
 
@@ -994,7 +990,7 @@ println("Jacobian size: ", size(jacobian))
 # println("Estimated xi: ", xi_hat)
 
 # # -------------------- Latex result --------------------
-# parameter_xi = [raw"\$\xi_$j\$" for j in 1:J]
+# parameter_xi = ["\$\\xi_$j\$" for j in 1:J]
 
 # # Combine with other parameters
 # parameters = vcat([raw"$\alpha$",
@@ -1010,7 +1006,7 @@ println("Jacobian size: ", size(jacobian))
 # tab1 = String(latexify(df1, env=:tabular, latex=false))
 
 # latex_table1 = """
-# \\begin{table}[htbp]
+# \\begin{table}[H]
 # \\centering
 # $tab1
 # \\caption{Parameter estimates for the school full simulated choice model using Simulated Method of Moments.}
