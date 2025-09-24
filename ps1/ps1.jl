@@ -186,7 +186,7 @@ parameter_xi = ["\$\\xi_$j\$" for j in 1:J]
 # Combine with other parameters
 parameters = vcat([raw"$\alpha$",
                    raw"$\beta_1$",
-                   raw"\beta_2$"], parameter_xi)
+                   raw"$\beta_2$"], parameter_xi)
 
 vals1 = vcat([alpha_hat, beta_hat[1], beta_hat[2]], xi_hat)  # concatenate values
 
@@ -442,7 +442,7 @@ parameter_xi = ["\$\\xi_$j\$" for j in 1:J]
 # Combine with other parameters
 parameters = vcat([raw"$\alpha$",
                    raw"$\beta_1$",
-                   raw"\beta_2$"], parameter_xi, [raw"$\sigma_b$"])
+                   raw"$\beta_2$"], parameter_xi, [raw"$\sigma_b$"])
 
 vals1 = vcat([alpha_hat, beta_hat[1], beta_hat[2]], xi_hat, [sigma_b_hat])
 
@@ -652,7 +652,7 @@ parameter_xi = ["\$\\xi_$j\$" for j in 1:J]
 # Combine with other parameters
 parameters = vcat([raw"$\alpha$",
                    raw"$\beta_1$",
-                   raw"\beta_2$"], parameter_xi, [raw"$\sigma_b$"])
+                   raw"$\beta_2$"], parameter_xi, [raw"$\sigma_b$"])
 vals1 = vcat([alpha_hat, beta_hat[1], beta_hat[2]], xi_hat, [sigma_b_hat])
 
 df1 = DataFrame(
@@ -839,7 +839,7 @@ parameter_xi = ["\$\\xi_$j\$" for j in 1:J]
 # Combine with other parameters
 parameters = vcat([raw"$\alpha$",
                    raw"$\beta_1$",
-                   raw"\beta_2$"], parameter_xi, [raw"$\sigma_b$"])
+                   raw"$\beta_2$"], parameter_xi, [raw"$\sigma_b$"])
 vals1 = vcat([alpha_hat, beta_hat[1], beta_hat[2]], xi_hat, [sigma_b_hat])
 
 df1 = DataFrame(
@@ -995,7 +995,7 @@ println(latex_table1)
 # # Combine with other parameters
 # parameters = vcat([raw"$\alpha$",
 #                    raw"$\beta_1$",
-#                    raw"\beta_2$"], parameter_xi, [raw"$\sigma_b$"])
+#                    raw"$\beta_2$"], parameter_xi, [raw"$\sigma_b$"])
 # vals1 = vcat([alpha_hat, beta_hat[1], beta_hat[2]], xi_hat, [sigma_b_hat])
 
 # df1 = DataFrame(
