@@ -1,7 +1,7 @@
 ### Problem Set 1
 # Author: Stefano Sperti
 
-using DataFrames, CSV, Plots, Statistics, Random, Distributions, Optim, LinearAlgebra, DataFrames, Latexify, FastGaussQuadrature
+using DataFrames, CSV, Plots, Statistics, Random, Distributions, Optim, LinearAlgebra, DataFrames, Latexify, FastGaussQuadrature, ForwardDiff
 
 cd(@__DIR__)
 figures_dir = joinpath(@__DIR__, "figures")
@@ -55,6 +55,9 @@ println("Number of unique schools: ", length(unique(school_dataset[:, :school_id
 
 # School characteristics
 school_info = unique(school_dataset[:, [:school_id, :test_scores, :sports]])
+println("School info dimensions: ", size(school_info))
+
+
 rename!(school_info, [:test_scores => :test_scores_school, :sports => :sports_school])
 school_info = sort(school_info, :school_id)
 test_scores = school_info[:, :test_scores_school]
@@ -87,6 +90,7 @@ println("Checking dimensions...")
 @assert size(distance, 1) == N
 @assert size(distance, 2) == J
 
+## Check if there is variation in test_scores and sports
 
 ### 4 Estimate the plain logit model by maximimum likelihood.
 println("--------------------------------")
@@ -294,6 +298,18 @@ end
 
 println("Table saved to latex/table_5.tex")
 
+
+# Computing standard errors
+hessian = ForwardDiff.hessian(p -> f_simulated_MC(p), params_hat)
+
+# covariance matrix = inverse of the Hessian
+vcov = inv(hessian)
+
+# standard errors
+se = sqrt.(diag(vcov))
+
+println("Parameter estimates: ", params_hat)
+println("Standard errors: ", se)
 ### 6
 # Latex
 
@@ -380,9 +396,10 @@ function loglik_grad!(G, params, test_scores, sports, distance, y, R)
     for i in 1:N
         prob_sim = zeros(J)
         dprob_sim = zeros(length(params), J)
+        eps_draws = randn(R)  # standard normal draws
 
         for r in 1:R
-            beta1 = beta1_mu + sigma_b * R[r]
+            beta1 = beta1_mu + sigma_b * eps_draws[r]
             U = [beta1 * test_scores[j] + beta2 * sports[j] + xi[j] - alpha * distance[i, j] for j in 1:J]
             expU = exp.(U .- maximum(U))
             P = expU ./ sum(expU)
