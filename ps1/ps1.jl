@@ -42,6 +42,12 @@ min_distances_vector = combine(groupby(school_dataset, :household_id),
 histogram(min_distances_vector, bins=20, title="Histogram of Minimum Distance to Schools", xlabel="Minimum Distance from schools School", ylabel="Frequency")
 savefig(joinpath(figures_dir, "histogram_min_distance_schools.png"))
 
+
+counts = combine(groupby(school_dataset, :school_id), nrow => :count)
+different_counts = unique(groupby(school_dataset, :school_id))
+println("Number of unique counts of observations per school: ", size(different_counts, 1))
+println("The data is balanced: ", counts)
+
 ###
 println("Preparing data for estimation...")
 println("Number of unique households: ", length(unique(school_dataset[:, :household_id])))
@@ -178,6 +184,7 @@ println("----------------------------")
 println("Estimated alpha: ", alpha_hat)
 println("Estimated beta: ", beta_hat)
 println("Estimated xi: ", xi_hat)
+
 
 
 # -------------------- Latex result --------------------
