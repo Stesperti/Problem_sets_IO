@@ -85,7 +85,7 @@ def msfp_prices(x_t, xi_t, mc_t, p0=None, max_iter=5000, tol=1e-10, damp=0.8):
     for it in range(max_iter):
         s, dsdp = sim_shares_and_jacobian(p, x_t, xi_t)
         diag = np.diag(dsdp)
-        # Guard: own-price derivatives should be negative
+        # Guard: own-prices derivatives should be negative
         if np.any(diag >= 0):
             # If happens, try to bail with small step toward mc
             p = 0.5 * (p + mc_t)
@@ -196,9 +196,11 @@ print("max |p_root - p_msfp| =", np.max(np.abs(p_r - p_m)))
 records = []
 for t in range(T):
     for j in range(J):
+        nest_ids = 1 if (j + 1 ) == 1 or (j + 1) == 0 else 1
         records.append({
             "market_ids": t+1,
             "product_ids": j+1,
+            "nesting_ids": nest_ids,
             "is_satellite": is_sat[j],
             "is_wired": is_wir[j],
             "x": x[t, j],
@@ -237,13 +239,129 @@ for j in range(J):
 #estimation using two-stage least squares (2SLS) with w as an instrument for prices
     df_j = pd.DataFrame({
         "y":        diff_ln_s_jt[:, j],
-        "price":    prices_root[:, j],
+        "prices":    prices_root[:, j],
         "x":        x[:, j],
         "w":        w[:, j],
     })
-    # y = β0 + βx·x + βp·price, instrument price with w
-    res = IV2SLS.from_formula("y ~ 1 + x + [price ~ w]", data=df_j).fit(cov_type="robust")
+    # y = β0 + βx·x + βp·price, instrument prices with w
+    res = IV2SLS.from_formula("y ~ 1 + x + [prices ~ w]", data=df_j).fit(cov_type="robust")
     print(f"2SLS results, product {j+1}")
     print(res.summary) 
 
-# %%
+#%%
+df = pd.read_csv("paytv_sim_equilibrium.csv")
+
+# df = pd.DataFrame.from_records(records)
+eps = 1e-12
+
+# 1) Outside share and log share ratio
+mkt_sum = df.groupby("market_ids")["shares"].sum().rename("sum_share_mkt")
+df = df.merge(mkt_sum, on="market_ids", how="left")
+df["s0"] = (1.0 - df["sum_share_mkt"]).clip(lower=eps)
+df["ln_sj_s0"] = np.log(df["shares"].clip(lower=eps)) - np.log(df["s0"])
+
+# 2) Boolean masks for nests
+mask_sat = df["is_satellite"].astype(bool)
+mask_wir = df["is_wired"].astype(bool)
+
+# 3) Nest totals S_{g,t}
+S_sat = (df.assign(sat_share=np.where(mask_sat, df["shares"], 0.0))
+           .groupby("market_ids")["sat_share"].transform("sum"))
+S_wir = (df.assign(wir_share=np.where(mask_wir, df["shares"], 0.0))
+           .groupby("market_ids")["wir_share"].transform("sum"))
+
+# 4) Within-nest logs (0 for products not in that nest)
+df["ln_within_sat"] = 0.0
+valid_sat = mask_sat & (S_sat > 0)
+df.loc[valid_sat, "ln_within_sat"] = np.log((df.loc[valid_sat, "shares"] / S_sat[valid_sat]).clip(lower=eps))
+
+df["ln_within_wired"] = 0.0
+valid_wir = mask_wir & (S_wir > 0)
+df.loc[valid_wir, "ln_within_wired"] = np.log((df.loc[valid_wir, "shares"] / S_wir[valid_wir]).clip(lower=eps))
+
+# 5) 2SLS: instrument price only (keep your names)
+# Model: ln(s_j/s_0) = β*x + α*prices + σ_sat*ln(s|sat) + σ_wir*ln(s|wir) + ξ
+# Endog: prices; Exog: 1 + x + ln_within_sat + ln_within_wired; IVs: exog + w
+formula = (
+    "ln_sj_s0 ~ 1 + x + ln_within_sat + ln_within_wired "
+    "[prices ~ w]"
+)
+iv_res = IV2SLS.from_formula(formula, data=df).fit(
+    cov_type="clustered", clusters=df["market_ids"]
+)
+print(iv_res.summary)
+
+# Coefs
+beta_x    = iv_res.params["x"]
+alpha_p   = iv_res.params["prices"]
+sigma_sat = iv_res.params["ln_within_sat"]
+sigma_wir = iv_res.params["ln_within_wired"]
+print("\nEstimates:")
+print(f"Beta on x           = {beta_x:.4f}")
+print(f"Alpha on prices     = {alpha_p:.4f}")
+print(f"Sigma (satellite)   = {sigma_sat:.4f}")
+print(f"Sigma (wired)       = {sigma_wir:.4f}")
+
+
+
+#%%
+
+# from linearmodels.iv import IV2SLS
+
+# # ---------- 1) Build nested-logit regressors ----------
+# eps = 1e-12
+
+# # outside shares s0_t = 1 - sum_j s_jt
+# mkt_sum = df.groupby("market_ids")["shares"].sum().rename("sum_share_mkt")
+# df = df.merge(mkt_sum, on="market_ids", how="left")
+# df["s0"] = (1.0 - df["sum_share_mkt"]).clip(lower=eps)
+
+# # log shares ratio ln(s_j/s_0)
+# df["ln_sj_s0"] = np.log(df["shares"].clip(lower=eps)) - np.log(df["s0"])
+
+# # within-nest shares s_{j|g,t} and its log
+# nest_tot = df.groupby(["market_ids", "nesting_ids"])["shares"].sum().rename("S_g_t")
+# df = df.merge(nest_tot, on=["market_ids", "nesting_ids"], how="left")
+# df["s_j_given_g"]   = (df["shares"] / df["S_g_t"]).clip(lower=eps)
+# df["ln_sj_given_g"] = np.log(df["s_j_given_g"])
+
+# # ---------- 2) Instruments ----------
+# # (A) Cost shifter w instruments prices (classic)
+# # (B) Within-nest leave-one-out means of exogenous shifters instrument ln(s_{j|g})
+# N_g = df.groupby(["market_ids","nesting_ids"]).size().rename("N_g")  # may be constant in your sim
+# df = df.merge(N_g, on=["market_ids","nesting_ids"], how="left")
+
+# # Leave-one-out nest means (good, varying instruments even if N_g is constant across markets)
+# nest_mean_w = df.groupby(["market_ids","nesting_ids"])["w"].transform("mean")
+# nest_mean_x = df.groupby(["market_ids","nesting_ids"])["x"].transform("mean")
+# df["w_nest_mean_excl"] = (nest_mean_w * df["N_g"] - df["w"]) / df["N_g"].clip(lower=1)
+# df["x_nest_mean_excl"] = (nest_mean_x * df["N_g"] - df["x"]) / df["N_g"].clip(lower=1)
+
+# # Optional: include N_g only if it actually varies (helps instrument ln_sj_given_g)
+# instr_cols = ["w", "w_nest_mean_excl", "x_nest_mean_excl"]
+# if df["N_g"].nunique() > 1:
+#     instr_cols.append("N_g")
+
+# # ---------- 3) Run 2SLS (endog: prices, ln_sj_given_g; exog: const + x) ----------
+# # Model: ln(s_j/s_0) = β0 + βx * x - α * prices + ρ * ln(s_{j|g}) + ξ
+# formula = "ln_sj_s0 ~ 1 + x [prices + ln_sj_given_g ~ x + " + " + ".join(instr_cols) + "]"
+# iv_res = IV2SLS.from_formula(
+#     formula,
+#     data=df
+# ).fit(cov_type="clustered", clusters=df["market_ids"])
+
+# print(iv_res.summary)
+
+# # Recover α and ρ
+# alpha = -iv_res.params["prices"]            # prices coefficient enters with a minus in the model
+# rho   =  iv_res.params["ln_sj_given_g"]    # nesting parameter
+# print("\nEstimated alpha (prices coef):", alpha)
+# print("Estimated rho   (nest param): ", rho)
+
+# # ---------- 4) First-stage diagnostics ----------
+# print("\n--- First-stage diagnostics ---")
+# for endog, fs in iv_res.first_stage.items():
+#     print(f"\nFirst stage for {endog}:")
+#     print(fs.summary)
+
+# %% 7 Construct true elasticity and the rest
