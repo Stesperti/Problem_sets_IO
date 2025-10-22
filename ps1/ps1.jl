@@ -90,7 +90,113 @@ println("Checking dimensions...")
 @assert size(distance, 1) == N
 @assert size(distance, 2) == J
 
-## Check if there is variation in test_scores and sports
+### 4.2
+println("--------------------------------")
+println("Problem 2.4")
+println("Estimate the plain logit model by maximimum likelihood without the xi_j parameters")
+println("--------------------------------")
+
+function loglik_joint_full_noxi(params::AbstractVector,
+                           test_scores::AbstractVector,
+                           sports::AbstractVector,
+                           distance::AbstractMatrix,
+                           y::AbstractVector{<:Integer})
+    T = eltype(params)           # Dual-friendly element type
+    N = length(y)
+    J = length(test_scores)
+
+    alpha = params[1]
+    beta1, beta2 = params[2], params[3]
+
+    U = Array{T}(undef, N, J)    # not Float64
+    @inbounds for i in 1:N, j in 1:J
+        U[i, j] = beta1*test_scores[j] + beta2*sports[j] - alpha*distance[i, j]
+    end
+
+    LL = zero(T)                 # not 0.0
+    @inbounds for i in 1:N
+        Ui = @view U[i, :]
+        m = maximum(Ui)                                   # stable log-sum-exp
+        log_denom = m + log(sum(exp.(Ui .- m)))
+        LL += Ui[y[i]] - log_denom
+    end
+    return -LL   # negative log-likelihood
+end
+
+function loglik_grad_full_noxi!(G, params, test_scores, sports, distance, y)
+    N = length(y)
+    J = length(test_scores)
+
+    alpha = params[1]
+    beta1, beta2 = params[2:3]
+
+    # reset gradient
+    G[:] .= 0.0
+
+    for i in 1:N
+        # utilities
+        Ui = [beta1 * test_scores[j] + beta2 * sports[j] - alpha * distance[i, j] for j in 1:J]
+
+        # choice probs
+        expU = exp.(Ui .- maximum(Ui))  # stability
+        P = expU ./ sum(expU)
+
+        yi = y[i]
+
+        # contributions for each parameter
+        # dUi/dalpha = -distance[i,j]
+        G[1] += -distance[i, yi] - sum(P[j] * (-distance[i, j]) for j in 1:J)
+
+        # dUi/dbeta1 = test_scores[j]
+        G[2] += test_scores[yi] - sum(P[j] * test_scores[j] for j in 1:J)
+
+        # dUi/dbeta2 = sports[j]
+        G[3] += sports[yi] - sum(P[j] * sports[j] for j in 1:J)
+        
+    end
+
+    G .*= -1.0   # because objective is -LL
+    return G
+end
+
+# Initial values
+init_params = zeros(3)
+println("Initial parameters: ", init_params)
+
+# MLE estimation
+println("Starting optimization...")
+f_baseline_noxi(p) = loglik_joint_full_noxi(p, test_scores, sports, distance, y)
+g_baseline_noxi!(G, p) = loglik_grad_full_noxi!(G, p, test_scores, sports, distance, y)
+
+obj_baseline = OnceDifferentiable(f_baseline_noxi, g_baseline_noxi!, init_params)
+result = optimize(obj_baseline, init_params, LBFGS(), options)
+
+params_hat_baseline_noxi = Optim.minimizer(result)
+
+alpha_hat = params_hat_baseline_noxi[1]
+beta_hat = params_hat_baseline_noxi[2:3]
+xi_hat = [0.0; params_hat_baseline_noxi[4:end]]   # xi1 = 0
+
+println("----------------------------")
+println("MLE Results")
+println("----------------------------")
+println("Estimated alpha: ", alpha_hat)
+println("Estimated beta: ", beta_hat)
+println("Estimated xi: ", xi_hat)
+
+# Computing standard errors
+hessian = ForwardDiff.hessian(p -> f_baseline_noxi(p), params_hat_baseline_noxi)
+
+# Hessian of the NEGATIVE log-likelihood
+H = ForwardDiff.hessian(f_baseline_noxi, params_hat_baseline_noxi)
+
+# Observed Fisher information ≈ H, so:
+vcov = inv(H)                 # if f_baseline is NEGATIVE log-lik
+se_noxi = sqrt.(diag(vcov))
+
+println("Parameter estimates: ", params_hat_baseline_noxi)
+println("Standard errors: ", se_noxi)
+
 
 ### 4 Estimate the plain logit model by maximimum likelihood.
 println("--------------------------------")
@@ -98,29 +204,32 @@ println("Problem 2.4")
 println("Estimate the plain logit model by maximimum likelihood.")
 println("--------------------------------")
 
-function loglik_joint_full(params, test_scores, sports, distance, y)
+function loglik_joint_full(params::AbstractVector,
+                           test_scores::AbstractVector,
+                           sports::AbstractVector,
+                           distance::AbstractMatrix,
+                           y::AbstractVector{<:Integer})
+    T = eltype(params)           # Dual-friendly element type
     N = length(y)
     J = length(test_scores)
 
     alpha = params[1]
-    beta1, beta2 = params[2:3]
-    xi = [0.0; params[4:3+J-1]]   # xi1 = 0 for normalization
+    beta1, beta2 = params[2], params[3]
+    xi = vcat(zero(T), params[4:3+J-1])   # normalize ξ₁ = 0
 
-    U = zeros(N, J)
-    for i in 1:N
-        for j in 1:J
-            U[i, j] = beta1 * test_scores[j] + beta2 * sports[j] + xi[j] - alpha * distance[i, j]
-        end
+    U = Array{T}(undef, N, J)    # not Float64
+    @inbounds for i in 1:N, j in 1:J
+        U[i, j] = beta1*test_scores[j] + beta2*sports[j] + xi[j] - alpha*distance[i, j]
     end
 
-    LL = 0.0
-    for i in 1:N
-        Ui = U[i, :]
-        m = maximum(Ui)
-        log_denom = m + log(sum(exp.(Ui .- m)))  # log-sum-exp
-        LL += U[i, y[i]] - log_denom
+    LL = zero(T)                 # not 0.0
+    @inbounds for i in 1:N
+        Ui = @view U[i, :]
+        m = maximum(Ui)                                   # stable log-sum-exp
+        log_denom = m + log(sum(exp.(Ui .- m)))
+        LL += Ui[y[i]] - log_denom
     end
-    return -LL
+    return -LL   # negative log-likelihood
 end
 
 function loglik_grad_full!(G, params, test_scores, sports, distance, y)
@@ -189,7 +298,15 @@ println("Estimated alpha: ", alpha_hat)
 println("Estimated beta: ", beta_hat)
 println("Estimated xi: ", xi_hat)
 
+# Hessian of the NEGATIVE log-likelihood
+H = ForwardDiff.hessian(f_baseline, params_hat_baseline)
+H = Symmetric((H + H') / 2) 
+# Observed Fisher information ≈ H, so:
+vcov = inv(H)                 # if f_baseline is NEGATIVE log-lik
+se   = sqrt.(diag(vcov))
 
+println("Parameter estimates: ", params_hat_baseline)
+println("Standard errors:     ", se)
 
 # -------------------- Latex result --------------------
 parameter_xi = ["\$\\xi_$j\$" for j in 1:J]
@@ -221,6 +338,11 @@ open(joinpath(latex_dir, "table_4.tex"), "w") do f
 end
 
 println("Table saved to latex/table_4.tex")
+
+
+
+
+
 
 ### 5
 println("--------------------------------")
@@ -298,18 +420,8 @@ end
 
 println("Table saved to latex/table_5.tex")
 
+break
 
-# Computing standard errors
-hessian = ForwardDiff.hessian(p -> f_simulated_MC(p), params_hat)
-
-# covariance matrix = inverse of the Hessian
-vcov = inv(hessian)
-
-# standard errors
-se = sqrt.(diag(vcov))
-
-println("Parameter estimates: ", params_hat)
-println("Standard errors: ", se)
 ### 6
 # Latex
 
