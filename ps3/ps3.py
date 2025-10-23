@@ -302,66 +302,81 @@ print(f"Alpha on prices     = {alpha_p:.4f}")
 print(f"Sigma (satellite)   = {sigma_sat:.4f}")
 print(f"Sigma (wired)       = {sigma_wir:.4f}")
 
+# %% 7 Construct a latex table iwth the estimate
 
 
-#%%
+# %% 8
+df = pd.read_csv("paytv_sim_equilibrium.csv")
+df.head()
+RNG_SEED = 2025
+np.random.seed(RNG_SEED)
 
-# from linearmodels.iv import IV2SLS
+T = 600                 # markets
+J = 4                   # products per market
+N = 20               # number of simulation draws for agents (Monte Carlo)
 
-# # ---------- 1) Build nested-logit regressors ----------
-# eps = 1e-12
+# True parameters
+beta1 = 1.0             # on observed quality x
+beta_sat_mean = 4.0     # mean taste for satellite indicator
+beta_wir_mean = 4.0     # mean taste for wired indicator
+alpha = -2.0            # price coefficient (fixed)
 
-# # outside shares s0_t = 1 - sum_j s_jt
-# mkt_sum = df.groupby("market_ids")["shares"].sum().rename("sum_share_mkt")
-# df = df.merge(mkt_sum, on="market_ids", how="left")
-# df["s0"] = (1.0 - df["sum_share_mkt"]).clip(lower=eps)
+# Random-coeff std (satellite, wired)
+sigma_rc = np.array([1.0, 1.0])  # diag entries
 
-# # log shares ratio ln(s_j/s_0)
-# df["ln_sj_s0"] = np.log(df["shares"].clip(lower=eps)) - np.log(df["s0"])
+# Supply side: log mc = gamma0 + gamma1 * w + omega/8
+gamma0 = 0.5
+gamma1 = 0.25
 
-# # within-nest shares s_{j|g,t} and its log
-# nest_tot = df.groupby(["market_ids", "nesting_ids"])["shares"].sum().rename("S_g_t")
-# df = df.merge(nest_tot, on=["market_ids", "nesting_ids"], how="left")
-# df["s_j_given_g"]   = (df["shares"] / df["S_g_t"]).clip(lower=eps)
-# df["ln_sj_given_g"] = np.log(df["s_j_given_g"])
+# Correlation between xi and omega is 0.25, variances are 1
+cov_xi_omega = 0.25
+cov = np.array([[1.0, cov_xi_omega],
+                [cov_xi_omega, 1.0]])
 
-# # ---------- 2) Instruments ----------
-# # (A) Cost shifter w instruments prices (classic)
-# # (B) Within-nest leave-one-out means of exogenous shifters instrument ln(s_{j|g})
-# N_g = df.groupby(["market_ids","nesting_ids"]).size().rename("N_g")  # may be constant in your sim
-# df = df.merge(N_g, on=["market_ids","nesting_ids"], how="left")
+# ----------------------------
+# 1) Build product-level panel
+# ----------------------------
+markets = np.repeat(np.arange(T), J)
+products = np.tile(np.arange(1, J+1), T)
 
-# # Leave-one-out nest means (good, varying instruments even if N_g is constant across markets)
-# nest_mean_w = df.groupby(["market_ids","nesting_ids"])["w"].transform("mean")
-# nest_mean_x = df.groupby(["market_ids","nesting_ids"])["x"].transform("mean")
-# df["w_nest_mean_excl"] = (nest_mean_w * df["N_g"] - df["w"]) / df["N_g"].clip(lower=1)
-# df["x_nest_mean_excl"] = (nest_mean_x * df["N_g"] - df["x"]) / df["N_g"].clip(lower=1)
+# Indicators: products 1-2 are satellite, 3-4 are wired
+is_sat = (products <= 2).astype(float)
+is_wir = (products >= 3).astype(float)
 
-# # Optional: include N_g only if it actually varies (helps instrument ln_sj_given_g)
-# instr_cols = ["w", "w_nest_mean_excl", "x_nest_mean_excl"]
-# if df["N_g"].nunique() > 1:
-#     instr_cols.append("N_g")
+# Observed demand shifter x_jt and cost shifter w_jt: abs(N(0,1))
+x = np.abs(np.random.normal(size=T*J))
+w = np.abs(np.random.normal(size=T*J))
 
-# # ---------- 3) Run 2SLS (endog: prices, ln_sj_given_g; exog: const + x) ----------
-# # Model: ln(s_j/s_0) = β0 + βx * x - α * prices + ρ * ln(s_{j|g}) + ξ
-# formula = "ln_sj_s0 ~ 1 + x [prices + ln_sj_given_g ~ x + " + " + ".join(instr_cols) + "]"
-# iv_res = IV2SLS.from_formula(
-#     formula,
-#     data=df
-# ).fit(cov_type="clustered", clusters=df["market_ids"])
+# Demand and cost unobservables (xi, omega) with correlation 0.25
+xi_omega = np.random.multivariate_normal(mean=[0.0, 0.0], cov=cov, size=T*J)
+xi = xi_omega[:, 0]
+omega = xi_omega[:, 1]
 
-# print(iv_res.summary)
+# Log marginal costs and MC level
+log_mc = gamma0 + gamma1 * w + omega / 8.0
+mc = np.exp(log_mc)
 
-# # Recover α and ρ
-# alpha = -iv_res.params["prices"]            # prices coefficient enters with a minus in the model
-# rho   =  iv_res.params["ln_sj_given_g"]    # nesting parameter
-# print("\nEstimated alpha (prices coef):", alpha)
-# print("Estimated rho   (nest param): ", rho)
+# ----------------------------
+# 2) Set up pyBLP structures
+# ----------------------------
+# Demand: X1 has [x, satellite, wired]; price is in 'prices' column (handled separately)
+# Random coefficients on [satellite, wired]
+# Supply: X3 has [1, w] (linear-in-parameters log cost)
+form_X1 = pyblp.Formulation('0 + x + satellite + wired')
+form_X2 = pyblp.Formulation('0 + satellite + wired')  # RC on these
+form_X3 = pyblp.Formulation('1 + w')                  # supply shifters (log cost)
 
-# # ---------- 4) First-stage diagnostics ----------
-# print("\n--- First-stage diagnostics ---")
-# for endog, fs in iv_res.first_stage.items():
-#     print(f"\nFirst stage for {endog}:")
-#     print(fs.summary)
+# Product identifiers
+firm_ids = products  # single-product firms: each product is its own firm
 
-# %% 7 Construct true elasticity and the rest
+# Assemble product DataFrame required by pyBLP
+prod = pd.DataFrame({
+    'market_ids': markets,
+    'product_ids': products + markets * 10,  # unique id per product-market
+    'firm_ids': firm_ids,
+    'x': x,
+    'satellite': is_sat,
+    'wired': is_wir,
+    'w': w
+})
+
