@@ -42,7 +42,7 @@
    \usepackage{natbib}
 \bibliographystyle{plainnat}
 
-
+\usepackage{booktabs}
 % commands
 	% math
 		\newcommand{\prob}[1]{\mathbb{P}\left(#1\right)}
@@ -187,10 +187,9 @@ We estimate the plain multinomial logit model of demand by OLS, and then the sam
 two-stage least squares (2SLS), instrumenting for prices with the exogenous demand shifters $x$
 and the excluded cost shifters $w$. The results are reported in Table~\ref{tab:exercise_4}.
 
-\begin{table}[H]
-    \centering
-    \input{ps3/latex/table_exercise_4}
-\end{table}
+
+\input{ps3/Latex/table_exercise_4}
+
 
 ---
 
@@ -200,10 +199,8 @@ We next estimate a nested logit model by two-stage least squares, treating \text
 \textit{wired} as the two nests for the inside goods. The results are presented in
 Table~\ref{tab:exercise_6}.
 
-\begin{table}[H]
-    \centering
-    \input{ps3/latex/table_exercise_6}
-\end{table}
+
+\input{ps3/Latex/table_exercise_6}
 
 \textbf{Why this model is misspecified:}  
 [Insert explanation here—e.g., the nesting structure imposes substitution patterns that differ
@@ -218,20 +215,16 @@ own-price elasticities.
 Tables~\ref{tab:diversion_true} and~\ref{tab:diversion_est} report the true and estimated
 diversion ratio matrices.
 
-\begin{table}[H]
-    \centering
-    \input{ps3/latex/table_exercise_7}
-\end{table}
 
-\begin{table}[H]
-    \centering
-    \input{ps3/latex/table_diversion_true}
-\end{table}
+    \input{ps3/Latex/table_exercise_7}
 
-\begin{table}[H]
-    \centering
-    \input{ps3/latex/table_diversion_est}
-\end{table}
+
+
+    \input{ps3/Latex/table_diversion_true}
+
+
+    \input{ps3/Latex/table_diversion_est}
+
 
 ---
 
@@ -245,10 +238,7 @@ We report the estimated demand parameters and standard errors under three specif
 \end{enumerate}
 Results appear in Table~\ref{tab:exercise_8}.
 
-\begin{table}[H]
-    \centering
-    \input{ps3/latex/table_exercise_8}
-\end{table}
+%    \input{ps3/Latex/table_exercise_8}
 
 ---
 
@@ -258,20 +248,13 @@ Using the preferred estimates from Section~8, we compare estimated and true own-
 elasticities (Table~\ref{tab:exercise_9}) and show the corresponding true and estimated
 diversion ratios (Tables~\ref{tab:diversion_9_true}--\ref{tab:diversion_9_est}).
 
-\begin{table}[H]
-    \centering
-    \input{ps3/latex/table_exercise_9}
-\end{table}
 
-\begin{table}[H]
-    \centering
-    \input{ps3/latex/table_diversion_9_true}
-\end{table}
+    \input{ps3/Latex/table_exercise_9}
 
-\begin{table}[H]
-    \centering
-    \input{ps3/latex/table_diversion_9_est}
-\end{table}
+
+    \input{ps3/Latex/table_diversion_9_true}
+
+    \input{ps3/Latex/table_diversion_9_est}
 \subsection{10}
 Suppose two of the four firms were to merge. Give a brief intuition for what theory tells us is
 likely to happen to the equilibrium prices of each good j.
