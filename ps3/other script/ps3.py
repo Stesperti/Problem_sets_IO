@@ -1,21 +1,4 @@
-# %%
 
-# %%
-
-
-# %%
-
-
-# %% 4 OLS estimation of the simple logit model
-
-
-# %% 5 IV estimation of the simple logit model
-
-
-# %%
-
-
-#%%
 df = pd.read_csv("paytv_sim_equilibrium.csv")
 
 # df = pd.DataFrame.from_records(records)
