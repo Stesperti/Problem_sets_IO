@@ -138,10 +138,168 @@
 	  \author{Stefano Sperti}
 	\date{\today}
 	\title{Code Appendix}
-        \def\maintitle{Problem set 2}
+        \def\maintitle{Problem set 3}
 	\def\mainlogo{Latex/chicago_booth_logo.jpg}
 
 	\maketitle
+    \subsection{2}
+Multinomial Logit Market Shares
+$$
+s_{ij}(\theta) 
+= \Pr(d_{ij} = 1) 
+= \int 
+\frac{\exp\!\left(\beta_i x_j\right)}
+{1 + \sum_{k \in \mathcal{J}} \exp\!\left(\beta_i x_k\right)}
+\, f(\beta_i \mid \theta) \, \mathrm{d}\beta_i.
+$$
+
+Then, Let's differentiate with respect to the price variable. Then, for any product $m\in\mathcal J$,
+$$
+\frac{\partial s_{ij}(\theta)}{\partial p_m}
+= \int \frac{\partial s_{ij}(\beta_i)}{\partial p_m}\, f(\beta_i\mid\theta)\,
+\mathrm d\beta_i,
+\qquad\text{with}\qquad
+\frac{\partial s_{ij}(\beta_i)}{\partial p_m}
+= s_{ij}(\beta_i)\,\big(\mathbf 1\{j=m\}-s_{im}(\beta_i)\big)\,\beta_i^{(p)}.
+$$
+Hence,
+$$
+\boxed{\;
+\frac{\partial s_{ij}(\theta)}{\partial p_m}
+= \int s_{ij}(\beta_i)\,\big(\mathbf 1\{j=m\}-s_{im}(\beta_i)\big)\,
+\beta_i^{(p)}\, f(\beta_i\mid\theta)\,\mathrm d\beta_i.
+\;}
+$$
+
+In particular,
+$$
+\frac{\partial s_{ij}(\theta)}{\partial p_j}
+= \int s_{ij}(\beta_i)\big(1-s_{ij}(\beta_i)\big)\,\beta_i^{(p)}
+\, f(\beta_i\mid\theta)\,\mathrm d\beta_i,
+\quad
+\frac{\partial s_{ij}(\theta)}{\partial p_m}
+= -\int s_{ij}(\beta_i)s_{im}(\beta_i)\,\beta_i^{(p)}
+\, f(\beta_i\mid\theta)\,\mathrm d\beta_i \;\;(m\neq j).
+$$
+\subsection*{4--5. Multinomial Logit Estimation (OLS and 2SLS)}
+
+We estimate the plain multinomial logit model of demand by OLS, and then the same model by
+two-stage least squares (2SLS), instrumenting for prices with the exogenous demand shifters $x$
+and the excluded cost shifters $w$. The results are reported in Table~\ref{tab:exercise_4}.
+
+\begin{table}[H]
+    \centering
+    \input{ps3/latex/table_exercise_4}
+\end{table}
+
+---
+
+\subsection*{6. Nested Logit Model}
+
+We next estimate a nested logit model by two-stage least squares, treating \textit{satellite} and
+\textit{wired} as the two nests for the inside goods. The results are presented in
+Table~\ref{tab:exercise_6}.
+
+\begin{table}[H]
+    \centering
+    \input{ps3/latex/table_exercise_6}
+\end{table}
+
+\textbf{Why this model is misspecified:}  
+[Insert explanation here—e.g., the nesting structure imposes substitution patterns that differ
+from the true data-generating process.]
+
+---
+
+\subsection*{7. Elasticities and Diversion Ratios (Baseline Estimates)}
+
+Table~\ref{tab:exercise_7} compares the estimated own-price elasticities to the true
+own-price elasticities.  
+Tables~\ref{tab:diversion_true} and~\ref{tab:diversion_est} report the true and estimated
+diversion ratio matrices.
+
+\begin{table}[H]
+    \centering
+    \input{ps3/latex/table_exercise_7}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \input{ps3/latex/table_diversion_true}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \input{ps3/latex/table_diversion_est}
+\end{table}
+
+---
+
+\subsection*{8. Joint Demand and Supply Estimation}
+
+We report the estimated demand parameters and standard errors under three specifications:
+\begin{enumerate}
+    \item Demand estimated alone;
+    \item Demand and supply estimated jointly; and
+    \item Demand estimated using the ``optimal IV''.
+\end{enumerate}
+Results appear in Table~\ref{tab:exercise_8}.
+
+\begin{table}[H]
+    \centering
+    \input{ps3/latex/table_exercise_8}
+\end{table}
+
+---
+
+\subsection*{9. Preferred Model: Elasticities and Diversion Ratios}
+
+Using the preferred estimates from Section~8, we compare estimated and true own-price
+elasticities (Table~\ref{tab:exercise_9}) and show the corresponding true and estimated
+diversion ratios (Tables~\ref{tab:diversion_9_true}--\ref{tab:diversion_9_est}).
+
+\begin{table}[H]
+    \centering
+    \input{ps3/latex/table_exercise_9}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \input{ps3/latex/table_diversion_9_true}
+\end{table}
+
+\begin{table}[H]
+    \centering
+    \input{ps3/latex/table_diversion_9_est}
+\end{table}
+\subsection{10}
+Suppose two of the four firms were to merge. Give a brief intuition for what theory tells us is
+likely to happen to the equilibrium prices of each good j.
+
+\subsection*{12}
+comparing the (average across markets) predicted merger-induced price
+changes for this merger 
+\subsection*{13}
+13. Thus far you have assumed that there are no “efficiencies” (reduction in costs) resulting from
+the merger. Explain briefly why a merger-specific reduction in marginal cost could mean that
+a merger is welfare-enhancing
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 \end{document}
+
+
 
