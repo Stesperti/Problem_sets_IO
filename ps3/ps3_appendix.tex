@@ -85,6 +85,10 @@
 \newcommand{\E}{\mathbb{E}}
 \newcommand{\R}{\mathbb{R}}
 
+\makeatletter
+\let\orig@float@table\float@table
+\def\float@table{\orig@float@table[H]}
+\makeatother
 % preamble
 	% path for pictures
 		\graphicspath{{./images/}}
@@ -142,8 +146,9 @@
 	\def\mainlogo{Latex/chicago_booth_logo.jpg}
 
 	\maketitle
-    \subsection{2}
-Multinomial Logit Market Shares
+    \section*{Generate Fake Data}
+    \subsection*{2}
+In particular let's start definingMultinomial Logit Market Shares
 $$
 s_{ij}(\theta) 
 = \Pr(d_{ij} = 1) 
@@ -164,11 +169,9 @@ $$
 $$
 Hence,
 $$
-\boxed{\;
 \frac{\partial s_{ij}(\theta)}{\partial p_m}
 = \int s_{ij}(\beta_i)\,\big(\mathbf 1\{j=m\}-s_{im}(\beta_i)\big)\,
 \beta_i^{(p)}\, f(\beta_i\mid\theta)\,\mathrm d\beta_i.
-\;}
 $$
 
 In particular,
@@ -195,8 +198,8 @@ and the excluded cost shifters $w$. The results are reported in Table~\ref{tab:e
 
 \subsection*{6. Nested Logit Model}
 
-We next estimate a nested logit model by two-stage least squares, treating \textit{satellite} and
-\textit{wired} as the two nests for the inside goods. The results are presented in
+We next estimate a nested logit model by two-stage least squares, treating {satellite} and
+{wired} as the two nests for the inside goods. The results are presented in
 Table~\ref{tab:exercise_6}.
 
 
