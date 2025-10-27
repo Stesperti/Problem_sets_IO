@@ -141,7 +141,7 @@
 						\end{center}
 					}
 			\makeatother
-
+\input{ps3/Latex/scalars_exercise_15}
 \begin{document}
 
 	  \author{Stefano Sperti}
@@ -358,7 +358,7 @@ Table~\ref{tab:exercise_14} reports the predicted post-merger price changes (ave
 
 We then use these simulated post-merger prices to compute the change in consumer welfare Aggregating across markets (and using the fact that each market has the same measure of consumers $M_t$) gives the predicted change in total consumer surplus.
 
-In our simulation, the 15\% efficiency changed the total consumer surplus from \TotalWelfare to \TotalWelfareChangedCS increasing of a \WelfarePercentage\%.  In other words, lower costs translate into lower post-merger prices, which partially protects consumers.
+In our simulation, the 15\% efficiency changed the total consumer surplus from \TotalWelfare \ to \TotalWelfareChangedCS \ increasing of a \WelfarePercentage\%.  In other words, lower costs translate into lower post-merger prices, which partially protects consumers.
 
 \subsection*{15. Why we now need $M_t$.}
 Up to this point, we normalized the market size to $M_t = 1$ without loss of generality because we were comparing objects like market shares, elasticities, or percentage price changes. These are all {per-consumer} or {per-market} objects, so scaling the total number of consumers did not affect any of the qualitative conclusions.
@@ -368,17 +368,8 @@ However, when we move to {consumer surplus in levels} and then to {total welfare
 \text{Total Consumer Welfare}_t = M_t \cdot CS_t.
 \]
 
-This is why, at this stage, we either (i) assume that $M_t$ is the same across all markets $t$, or (ii) use data on the actual $M_t$ in each market. Without that, we cannot convert per-consumer surplus changes into dollar-valued total welfare changes.
+This is why, at this stage, we either (i) assume that $M_t$ is the same across all markets $t$, or (ii) use data on the actual $M_t$ in each market and compute the total as a weighted average. Without that, we cannot convert per-consumer surplus changes into dollar-valued total welfare changes.
 
-\paragraph{Total welfare.}
-Total welfare is the sum of consumer surplus and firms’ variable profits. With efficiencies, two forces move in opposite directions:
-\begin{enumerate}
-    \item \textbf{Market power effect:} The merger softens competition and tends to raise markups, which transfers surplus from consumers to firms.
-    \item \textbf{Efficiency effect:} The 15\% cost reduction lowers marginal cost, increasing productive efficiency. This can generate real (not just redistributive) gains.
-\end{enumerate}
-If the efficiency effect is large enough, it can outweigh the loss in consumer surplus, implying that \textbf{total welfare can increase even if consumers are worse off}, which is exactly why antitrust authorities care about whether efficiencies are (i) real, (ii) merger-specific, and (iii) large.
-
-In our simulation with a 15\% cost reduction, we find that post-merger prices rise less (and in some cases fall), consumer surplus declines by less (or may even improve), and variable profits increase due to both higher markups and lower costs. The net impact on total welfare therefore depends on the quantitative balance between these two forces, and crucially hinges on the assumed value of $M_t$.
 
 
 
