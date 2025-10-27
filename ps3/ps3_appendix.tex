@@ -23,7 +23,6 @@
 	% pictures
 		\usepackage{graphicx}
 		\usepackage{subcaption}
-		\usepackage{float}
 	% colors
 		\usepackage{xcolor}
 	% code
@@ -85,10 +84,16 @@
 \newcommand{\E}{\mathbb{E}}
 \newcommand{\R}{\mathbb{R}}
 
+
+
 \makeatletter
 \let\orig@float@table\float@table
 \def\float@table{\orig@float@table[H]}
 \makeatother
+\usepackage{float}
+\floatplacement{table}{H}
+\usepackage{etoolbox}
+\AtBeginEnvironment{tabular}{\centering}
 % preamble
 	% path for pictures
 		\graphicspath{{./images/}}
@@ -146,44 +151,80 @@
 	\def\mainlogo{Latex/chicago_booth_logo.jpg}
 
 	\maketitle
-    \section*{Generate Fake Data}
-    \subsection*{2}
-In particular let's start definingMultinomial Logit Market Shares
-$$
+\section*{Generating Fake Data}
+
+\subsection*{Step 2: Deriving Market Share Derivatives}
+
+We start by defining the Multinomial Logit market share for product $j$ and individual $i$:
+\[
 s_{ij}(\theta) 
 = \Pr(d_{ij} = 1) 
 = \int 
 \frac{\exp\!\left(\beta_i x_j\right)}
 {1 + \sum_{k \in \mathcal{J}} \exp\!\left(\beta_i x_k\right)}
-\, f(\beta_i \mid \theta) \, \mathrm{d}\beta_i.
-$$
+\, f(\beta_i \mid \theta)\, \mathrm{d}\beta_i,
+\]
+where $\beta_i$ denotes individual-specific taste coefficients drawn from a distribution $f(\beta_i \mid \theta)$ parameterized by $\theta$.
 
-Then, Let's differentiate with respect to the price variable. Then, for any product $m\in\mathcal J$,
-$$
+We are interested in the marginal effect of a change in price on market share.  
+For any product $m \in \mathcal{J}$, by the Leibniz rule we can move the derivative inside the integral:
+\[
 \frac{\partial s_{ij}(\theta)}{\partial p_m}
-= \int \frac{\partial s_{ij}(\beta_i)}{\partial p_m}\, f(\beta_i\mid\theta)\,
-\mathrm d\beta_i,
-\qquad\text{with}\qquad
+= \int 
 \frac{\partial s_{ij}(\beta_i)}{\partial p_m}
-= s_{ij}(\beta_i)\,\big(\mathbf 1\{j=m\}-s_{im}(\beta_i)\big)\,\beta_i^{(p)}.
-$$
-Hence,
-$$
-\frac{\partial s_{ij}(\theta)}{\partial p_m}
-= \int s_{ij}(\beta_i)\,\big(\mathbf 1\{j=m\}-s_{im}(\beta_i)\big)\,
-\beta_i^{(p)}\, f(\beta_i\mid\theta)\,\mathrm d\beta_i.
-$$
+\, f(\beta_i \mid \theta)\,
+\mathrm{d}\beta_i.
+\]
 
-In particular,
-$$
-\frac{\partial s_{ij}(\theta)}{\partial p_j}
-= \int s_{ij}(\beta_i)\big(1-s_{ij}(\beta_i)\big)\,\beta_i^{(p)}
-\, f(\beta_i\mid\theta)\,\mathrm d\beta_i,
-\quad
+Now, recall that the individual-level share can be expressed as:
+\[
+s_{ij}(\beta_i) = 
+\frac{\exp\!\left(\beta_i x_j\right)}
+{1 + \sum_{k \in \mathcal{J}} \exp\!\left(\beta_i x_k\right)}.
+\]
+Differentiating this expression with respect to price $p_m$, we obtain the well-known logit derivative formula:
+\[
+\frac{\partial s_{ij}(\beta_i)}{\partial p_m}
+= s_{ij}(\beta_i)
+\big(\mathbf{1}\{j=m\} - s_{im}(\beta_i)\big)
+\, \beta_i^{(p)},
+\]
+where $\beta_i^{(p)}$ is the (possibly heterogeneous) price coefficient.
+
+Aggregating over the population, the derivative of the market share becomes:
+\[
 \frac{\partial s_{ij}(\theta)}{\partial p_m}
-= -\int s_{ij}(\beta_i)s_{im}(\beta_i)\,\beta_i^{(p)}
-\, f(\beta_i\mid\theta)\,\mathrm d\beta_i \;\;(m\neq j).
-$$
+= \int 
+s_{ij}(\beta_i)
+\big(\mathbf{1}\{j=m\} - s_{im}(\beta_i)\big)
+\, \beta_i^{(p)}
+\, f(\beta_i \mid \theta)\,
+\mathrm{d}\beta_i.
+\]
+
+\paragraph{Own and cross-price derivatives.}
+In particular, we can separate the two cases:
+\[
+\frac{\partial s_{ij}(\theta)}{\partial p_j}
+= \int 
+s_{ij}(\beta_i)\,
+\big(1 - s_{ij}(\beta_i)\big)\,
+\beta_i^{(p)}\,
+f(\beta_i \mid \theta)\,
+\mathrm{d}\beta_i,
+\]
+and for $m \neq j$,
+\[
+\frac{\partial s_{ij}(\theta)}{\partial p_m}
+= - \int 
+s_{ij}(\beta_i)\,
+s_{im}(\beta_i)\,
+\beta_i^{(p)}\,
+f(\beta_i \mid \theta)\,
+\mathrm{d}\beta_i.
+\]
+
+
 \subsection*{4--5. Multinomial Logit Estimation (OLS and 2SLS)}
 
 We estimate the plain multinomial logit model of demand by OLS, and then the same model by
@@ -193,40 +234,55 @@ and the excluded cost shifters $w$. The results are reported in Table~\ref{tab:e
 
 \input{ps3/Latex/table_exercise_4}
 
-
----
+In this framework, the estimation of the price coefficient suffers from endogeneity because prices are correlated with unobserved demand shocks, $\xi_{jt}$, that also affect market shares. In a simple Logit model, this correlation causes the OLS estimator to be biased toward zero, thereby underestimating consumers’ price sensitivity. This occurs because $\operatorname{Cov}(p_{jt}, \xi_{jt}) > 0$. The intuition behind this positive correlation is that high-demand (high-$\xi_{jt}$) products tend to be high-price products, as firms optimally raise prices for goods that are more desirable for unobserved reasons. To address this issue, the IV estimator replaces the endogenous price with a predicted component constructed from exogenous cost or demand shifters that affect price but are uncorrelated with $\xi_{jt}$. In practice, the IV estimator partially corrects the bias and yields a more negative (and economically meaningful) price coefficient. However, in this exercise, the instrument is relatively weak—its correlation with the endogenous price is only about 0.25 by assumption—so the improvement over OLS is limited. As a result, the IV estimates remain noisy and may still suffer from finite-sample bias, illustrating the well-known trade-off between endogeneity correction and instrument strength in empirical demand estimation.
 
 \subsection*{6. Nested Logit Model}
 
 We next estimate a nested logit model by two-stage least squares, treating {satellite} and
-{wired} as the two nests for the inside goods. The results are presented in
+{wired} as the two nests for the inside goods. The estimation results are reported in
 Table~\ref{tab:exercise_6}.
-
 
 \input{ps3/Latex/table_exercise_6}
 
-\textbf{Why this model is misspecified:}  
-[Insert explanation here—e.g., the nesting structure imposes substitution patterns that differ
-from the true data-generating process.]
+The nested logit model is misspecified in this framework because it imposes a source of
+correlation across products that differs from the one actually present in the data-generating
+process. In the simulated model, correlation in unobserved utilities arises from
+ the coefficients
+$\beta_i^{(2)}$ and $\beta_i^{(3)}$ on the {satellite} and
+{wired} indicators. Consumers with strong preferences for satellite television, for instance,
+will tend to choose both satellite products, creating correlation in choices within the
+satellite group. This correlation is therefore the result of
+{random coefficients} that vary across individuals.
 
----
+By contrast, the nested logit model attributes within-group correlation to a
+{shared group-level unobservable} that is identical for all
+consumers.  This structure restricts substitution patterns to depend only on the nest
+membership, not on consumer-specific taste variation.
+
+Consequently, the nested logit model cannot reproduce the true substitution patterns implied by
+the simulated random-coefficients framework. It assumes that all products within a nest are
+equally similar and that all consumers share the same within-nest substitution intensity. In the
+true model, however, similarity depends on individual taste draws
+$(\beta_i^{(2)},\beta_i^{(3)})$ and product characteristics $x_{jt}$.
+As a result, the nested logit will deliver biased elasticity and diversion estimates and an
+incorrect interpretation of the nesting parameters.
+
 
 \subsection*{7. Elasticities and Diversion Ratios (Baseline Estimates)}
 
 Table~\ref{tab:exercise_7} compares the estimated own-price elasticities to the true
 own-price elasticities.  
-Tables~\ref{tab:diversion_true} and~\ref{tab:diversion_est} report the true and estimated
+Tables~\ref{tab:diversion_true_mean_7} and~\ref{tab:diversion_est_mean_7} report the true and estimated
 diversion ratio matrices.
 
 
     \input{ps3/Latex/table_exercise_7}
 
 
+\input{ps3/Latex/table_diversion_est_mean_7}
 
-    \input{ps3/Latex/table_diversion_true}
 
-
-    \input{ps3/Latex/table_diversion_est}
+    \input{ps3/Latex/table_diversion_true_mean_7}
 
 
 ---
@@ -241,9 +297,8 @@ We report the estimated demand parameters and standard errors under three specif
 \end{enumerate}
 Results appear in Table~\ref{tab:exercise_8}.
 
-%    \input{ps3/Latex/table_exercise_8}
+ \input{ps3/Latex/table_exercise_8}
 
----
 
 \subsection*{9. Preferred Model: Elasticities and Diversion Ratios}
 
@@ -258,24 +313,76 @@ diversion ratios (Tables~\ref{tab:diversion_9_true}--\ref{tab:diversion_9_est}).
     \input{ps3/Latex/table_diversion_9_true}
 
     \input{ps3/Latex/table_diversion_9_est}
-\subsection{10}
-Suppose two of the four firms were to merge. Give a brief intuition for what theory tells us is
-likely to happen to the equilibrium prices of each good j.
-
-\subsection*{12}
-comparing the (average across markets) predicted merger-induced price
-changes for this merger 
-\subsection*{13}
-13. Thus far you have assumed that there are no “efficiencies” (reduction in costs) resulting from
-the merger. Explain briefly why a merger-specific reduction in marginal cost could mean that
-a merger is welfare-enhancing
 
 
 
 
+\section{Merger Simulation}
+
+\subsection*{10. Theoretical Intuition}
+
+When two firms merge, they internalize the pricing externality between their products: before the merger, each firm sets its price ignoring the effect on the other firm's profits; after the merger, the merged entity recognizes that lowering the price of one product may cannibalize sales of its other product. As a result, the merged firm places a lower weight on aggressive price competition between its own products, which leads to {higher equilibrium prices} for the merging parties. Non-merging rivals typically respond by raising their prices as well, due to the softened competition in the market. 
+
+
+\subsection*{11. Merger Between Firms 1 and 2}
+
+The results, reported in Table~\ref{tab:exercise_12}, indicate that the merged satellite firms substantially increase their prices relative to the pre-merger equilibrium. This effect arises because the two products are close substitutes within the satellite nest, so internalizing their substitution reduces competitive pressure. Wired television firms (3 and 4) also increase prices slightly, reflecting reduced cross-nest competition.
+
+\subsection*{12. Merger Between Firms 1 and 3}
+
+Next, we simulate a merger between {Firm 1} (satellite) and {Firm 3} (wired). In this case, the merging firms produce products that are more differentiated and belong to different technology groups, so internalized substitution effects are weaker.
+
+Table~\ref{tab:exercise_12} reports the average predicted merger-induced price changes across markets for both merger scenarios.
+\input{ps3/Latex/table_exercise_12}
+
+
+The merger between {Firms 1 and 2} leads to a larger average price increase because these firms directly compete within the same (satellite) segment, where substitution is strong. The merger between {Firms 1 and 3}, on the other hand, involves firms in distinct technology groups; since cross-group substitution is limited, the price effects are smaller. This contrast highlights how the intensity of product differentiation determines the competitive impact of a merger: {horizontal mergers among close substitutes generate stronger unilateral incentives to raise prices} than mergers among differentiated products.
 
 
 
+\subsection*{13. Merger-specific efficiencies.}
+Up to this point we have assumed that the merger does not change marginal costs. In that case, the main unilateral effect of the merger is to soften competition between the products owned by the merging parties, which tends to increase prices and harm consumers. However, a merger can in principle generate “efficiencies,” such as lower marginal cost of production (e.g.\ via eliminating duplicated fixed costs, negotiating better input prices, or consolidating infrastructure). 
+
+If these cost reductions are merger-specific
+ that means they could not be obtained without the merger. In particular, a reduction in marginal cost lowers the merged firm’s optimal prices and can even lead to lower post-merger prices relative to pre-merger levels. In that case, consumers may face lower prices and therefore higher consumer surplus. Thus, even though increased concentration tends to raise prices, {a sufficiently large, merger-specific cost reduction can make the merger welfare-enhancing} from the standpoint of consumers.
+
+\subsection*{14. Simulation with a 15\% cost reduction.}
+We now revisit the merger between Firms 1 and 2 (the two satellite providers), and assume the merging parties credibly demonstrate that the marginal cost of each of their products would fall by 15\% after the merger. By assumption, these efficiencies are not attainable absent the merger. 
+
+Table~\ref{tab:exercise_14} reports the predicted post-merger price changes (averaged across markets for each product) under this scenario.
+
+\input{ps3/Latex/table_exercise_14}
+
+
+ Relative to the no-efficiency case, the simulated price increases for the merging products are attenuated, and in some cases prices may even fall. Intuitively, once marginal costs drop, the merged firm finds it profitable to pass some of that reduction through to consumers rather than fully exercising market power to raise price. 
+
+We then use these simulated post-merger prices to compute the change in consumer welfare. Under the standard Logit/BLP structure, consumer surplus in market $t$ can be written (up to an additive constant) as
+\[
+CS_t = \frac{1}{-\alpha} \log\!\Bigg( 1 + \sum_{j \in \mathcal{J}} \exp\big( \delta_{jt} \big) \Bigg),
+\]
+where $\alpha < 0$ is the marginal utility of price and $\delta_{jt}$ is the mean utility of product $j$ in market $t$. Holding $\alpha$ fixed, we can evaluate $CS_t$ before and after the merger and take the difference. Aggregating across markets (and using the fact that each market has the same measure of consumers $M_t$) gives the predicted change in total consumer surplus.
+
+In our simulation, the 15\% efficiency dampens the loss in consumer surplus relative to the no-efficiency merger. In other words, lower costs translate into lower post-merger prices, which partially protects consumers.
+
+\subsection*{15. Why we now need $M_t$.}
+Up to this point, we normalized the market size to $M_t = 1$ without loss of generality because we were comparing objects like market shares, elasticities, or percentage price changes. These are all \emph{per-consumer} or \emph{per-market} objects, so scaling the total number of consumers did not affect any of the qualitative conclusions.
+
+However, when we move to \textbf{consumer surplus in levels} and then to \textbf{total welfare}, the absolute scale of the market matters. A \$1 improvement in surplus per consumer implies a very different total welfare effect in a market with $M_t = 10{,}000$ consumers than in a market with $M_t = 100$ consumers. For this reason, to compute total consumer welfare we must multiply $CS_t$ by $M_t$:
+\[
+\text{Total Consumer Welfare}_t = M_t \cdot CS_t.
+\]
+
+This is why, at this stage, we either (i) assume that $M_t$ is the same across all markets $t$, or (ii) use data on the actual $M_t$ in each market. Without that, we cannot convert per-consumer surplus changes into dollar-valued total welfare changes.
+
+\paragraph{Total welfare.}
+Total welfare is the sum of consumer surplus and firms’ variable profits. With efficiencies, two forces move in opposite directions:
+\begin{enumerate}
+    \item \textbf{Market power effect:} The merger softens competition and tends to raise markups, which transfers surplus from consumers to firms.
+    \item \textbf{Efficiency effect:} The 15\% cost reduction lowers marginal cost, increasing productive efficiency. This can generate real (not just redistributive) gains.
+\end{enumerate}
+If the efficiency effect is large enough, it can outweigh the loss in consumer surplus, implying that \textbf{total welfare can increase even if consumers are worse off}, which is exactly why antitrust authorities care about whether efficiencies are (i) real, (ii) merger-specific, and (iii) large.
+
+In our simulation with a 15\% cost reduction, we find that post-merger prices rise less (and in some cases fall), consumer surplus declines by less (or may even improve), and variable profits increase due to both higher markups and lower costs. The net impact on total welfare therefore depends on the quantitative balance between these two forces, and crucially hinges on the assumed value of $M_t$.
 
 
 
